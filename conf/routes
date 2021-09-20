@@ -1,0 +1,23 @@
+GET        /                       controllers.HomeController.index
+#CMS-ESB REQUESTS
+# Disable csrf
++ NOCSRF
+POST        /getMemberDetails              controllers.EchannelsEngine.getMemberDetails
++ NOCSRF
+POST        /getBeneficiaryDetails              controllers.EchannelsEngine.getBeneficiaryDetails
++ NOCSRF
+POST        /getmemberbalancedetails              controllers.EchannelsEngine.getMemberBalanceDetails
++ NOCSRF
+POST        /getmembercontributionsdetails              controllers.EchannelsEngine.getMemberContributionsDetails
++ NOCSRF
+POST        /getmemberdetailsgeneral              controllers.EchannelsEngine.getMemberDetailsGeneral
++ NOCSRF
+POST        /addmemberdetailsregistered              controllers.EchannelsEngine.insertMemberDetailsRegistered
++ NOCSRF
+POST        /validatememberdetails              controllers.EchannelsEngine.validateMemberDetails
++ NOCSRF
+POST        /getmembercontributionsdetails              controllers.EchannelsEngine.getMemberContributionsDetails
++ NOCSRF
+POST        /getmemberprojectionbenefitsdetails              controllers.EchannelsEngine.getMemberProjectionBenefitsDetails
++ NOCSRF
+POST        /processprojectionbenefitsresponse              controllers.EchannelsEngine.processProjectionBenefitsResponse
