@@ -4300,12 +4300,12 @@ class EchannelsEngine @Inject()
 
                   try{
 
-                    var myMemberNo : Int = 0
-                    var strMemberNo : String = ""
-                    var strMemberType : String = ""
-                    var strProjectionType : String = ""
-                    var myProjectionType : Int = 5
-                    var strChannelType : String = ""
+                    var myMemberNo: Int = 0
+                    var strMemberNo: String = ""
+                    var strMemberType: String = ""
+                    var strProjectionType: String = ""
+                    var myProjectionType: Int = 5
+                    var strChannelType: String = ""
 
                     if (strRequest != null && strRequest != None){
                       strRequest = strRequest.trim
@@ -4366,7 +4366,7 @@ class EchannelsEngine @Inject()
                             strProjectionType = strProjectionType.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
                             strProjectionType = strProjectionType.trim
                             val isNumeric : Boolean = strProjectionType.toString.matches("[0-9]+")//"\\d+", //[0-9]
-                            if (isNumeric == true){
+                            if (isNumeric){
                               myProjectionType = strProjectionType.toInt
                             }
                           }
@@ -4382,7 +4382,7 @@ class EchannelsEngine @Inject()
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
-                      if (isValidInputData == false){
+                      if (!isValidInputData){
                         if (myMemberNo > 0){
                           isValidInputData = true
                         }
@@ -4391,7 +4391,7 @@ class EchannelsEngine @Inject()
                     //})
 
                     try{
-                      if (isValidInputData == true){
+                      if (isValidInputData){
                         //myDB.withConnection { implicit  myconn =>
 
                           try {
@@ -4408,22 +4408,23 @@ class EchannelsEngine @Inject()
                                 isValidMemberType = true
                               }
                             }
-
-                            if (myMemberNo > 0 && isValidMemberType == true){
+                            /*
+                            if (myMemberNo > 0 && isValidMemberType){
                               //function to get myMemberId
                               myMemberId = getMemberId(myMemberNo, strMemberType)
                               if (myMemberId > 0){
                                 isValidMemberId = true
                               }
                             }
-
+                            */
                             if (myProjectionType == 0 || myProjectionType == 1){
                               isValidProjectionType = true
                             }
 
                             isProcessed = true
                             //myProjectionType. 0: "Retirements Reduced", 1: "Retirements unReduced"
-                            if (isValidMemberId == true && isValidMemberType == true && isValidProjectionType == true){
+                            //if (isValidMemberId == true && isValidMemberType == true && isValidProjectionType == true){
+                            if (isValidMemberType && isValidProjectionType){
                               responseCode = 0
                               responseMessage = "Successful"
                               //val f = Future {sendProjectionBenefitsRequestsCbs(17274, "DC", "0", "HTTP://")}
@@ -4438,9 +4439,11 @@ class EchannelsEngine @Inject()
                               if (isValidMemberType == false){
                                 responseMessage = "member type has an invalid value"
                               }
+                              /*
                               else if (isValidMemberId == false){
                                 responseMessage = "Member id does not exist for the given Member no"
                               }
+                              */
                               else if (isValidProjectionType == false){
                                 responseMessage = "projection type has an invalid value"
                               }
@@ -6478,6 +6481,8 @@ class EchannelsEngine @Inject()
                           strResponseData = myResultCbsMessage_BatchData.toString
                         }
 
+                        //Log_data(strApifunction + " : " + "ResponseData - " + strResponseData)
+
                         var start_time_DB: String = ""
                         //new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
                         var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
@@ -6558,7 +6563,27 @@ class EchannelsEngine @Inject()
                           }
                         }
 
-                        if (myResultCbsMessage_BatchData.get.projectionbenefitsdata != None) {
+                        var isExists_projectionbenefitsdata: Boolean = false
+                        
+                        try{
+                          isExists_projectionbenefitsdata = {
+                            var isExists: Boolean = false
+                            if (statuscode != 0) {isExists = false}
+                            else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == null) {isExists = false}
+                            else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == None) {isExists = false}
+                            else {isExists = true}
+                            isExists
+                          }
+                        }
+                        catch {
+                          case io: Throwable =>
+                            Log_errors(strApifunction + " : " + io.getMessage())
+                          case ex: Exception =>
+                            Log_errors(strApifunction + " : " + ex.getMessage())
+                        }
+
+                        //if (myResultCbsMessage_BatchData.get.projectionbenefitsdata != None) {
+                        if (isExists_projectionbenefitsdata) {
                           val myProjectionBenefitsData = myResultCbsMessage_BatchData.get.projectionbenefitsdata
 
                           //strCalc_date
@@ -6967,7 +6992,7 @@ class EchannelsEngine @Inject()
                         val strDate_to_Cbs: String = start_time_DB
                         val strDate_from_Cbs: String = stop_time_DB
                         val myStatusCode_Cbs : Integer = res.status.intValue()
-                        val strStatusMessage_Cbs: String = "Successful"
+                        val strStatusMessage_Cbs: String = statusdescription//"Successful"
                         //UpdateLogsOutgoingLipaNaMpesaRequests(myTxnID, posted_to_Cbs, strDate_to_Cbs, strDate_from_Cbs, myStatusCode_Cbs, strStatusMessage_Cbs)
 
                         if (isDataExists) {
