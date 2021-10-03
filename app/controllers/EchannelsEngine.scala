@@ -23,7 +23,8 @@ import play.api.mvc.{AbstractController, ControllerComponents}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
+//import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
+import akka.http.scaladsl.model.headers.{RawHeader}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -44,6 +45,8 @@ import scala.util.control.Breaks
 import scala.util.control.Breaks.break
 import scala.util.{Failure, Success}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+//
+import play.api.libs.concurrent.Futures._
 //import com.microsoft.sqlserver.jdbc.SQLServerDataTable
 //(cc: ControllerComponents,myDB : Database,myExecutionContext: MyExecutionContext)
 trait MyExecutionContext extends ExecutionContext
@@ -61,7 +64,7 @@ class MyExecutionContextModule extends AbstractModule {
 }
 
 class EchannelsEngine @Inject()
-  (myExecutionContext: MyExecutionContext,cc: ControllerComponents, @NamedDatabase("ebusiness") myDB : Database, @NamedDatabase("cbsdb") myCbsDB : Database)
+  (myExecutionContext: MyExecutionContext,cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
   extends AbstractController(cc) {
 
   //case class MpesaTransactionStatus_Request(mobileno: String, transactioncode: String, amount: Float)
@@ -256,6 +259,7 @@ class EchannelsEngine @Inject()
   implicit val blockingDispatcher = system.dispatchers.lookup("my-dispatcher")
   implicit val timeout = Timeout(15 seconds)
 
+  val httpCallDelay: Int = 15
   val strApplication_path : String = System.getProperty("user.dir")
   var strFileDate  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
   val strpath_file : String = strApplication_path + "\\Logs\\" + strFileDate + "\\Logs.txt"
@@ -1191,13 +1195,14 @@ class EchannelsEngine @Inject()
     }(myExecutionContext)
   }
   def getMemberBalanceDetails = Action.async { request =>
-    Future {
+    //Future {
       val startDate : String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
       var isProcessed : Boolean = false
       var entryID: Int = 0
       var responseCode : Int = 1
       var responseMessage : String = "Error occured during processing, please try again."
-      var myMemberBalanceDetailsResponse_BatchData : Seq[MemberBalanceDetailsResponse_Batch] = Seq.empty[MemberBalanceDetailsResponse_Batch]
+      var myMemberBalanceDetailsResponse_BatchData: Seq[MemberBalanceDetailsResponse_Batch] = Seq.empty[MemberBalanceDetailsResponse_Batch]
+      var myMemberBalanceDetails_BatchRequest_test: MemberBalanceDetails_BatchRequest = null
       val strApifunction : String = "getMemberBalanceDetails"
 
       try
@@ -1376,6 +1381,7 @@ class EchannelsEngine @Inject()
                 try
                 {
                   entryID = 0
+                  myMemberBalanceDetails_BatchRequest_test = myMemberBalanceDetails_BatchRequest
                   myBatchSize = myMemberBalanceDetails_BatchRequest.memberdata.length
                   strBatchReference  = new SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date)
                   val myBatchReference : java.math.BigDecimal =  new java.math.BigDecimal(strBatchReference)
@@ -1391,8 +1397,8 @@ class EchannelsEngine @Inject()
                     sourceDataTable.addColumnMetadata("ChannelType", java.sql.Types.VARCHAR)
                     */
 
-                    var myMemberNo : BigDecimal = 0
-                    var strMemberNo : String = ""
+                    var myMemberNo: BigDecimal = 0
+                    var strMemberNo: String = ""
 
                     if (strRequest != null && strRequest != None){
                       strRequest = strRequest.trim
@@ -1417,9 +1423,9 @@ class EchannelsEngine @Inject()
                             strMemberNo = strMemberNo.replace(" ","")//Remove spaces
                             strMemberNo = strMemberNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
                             strMemberNo = strMemberNo.trim
-                            val isNumeric : Boolean = strMemberNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
-                            if (isNumeric == true){
-                              myMemberNo = strMemberNo.toDouble
+                            val isNumeric: Boolean = strMemberNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
+                            if (isNumeric){
+                              myMemberNo = BigDecimal(strMemberNo)
                             }
                           }
                         }
@@ -1432,7 +1438,7 @@ class EchannelsEngine @Inject()
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
-                      if (isValidInputData == false){
+                      if (!isValidInputData){
                         if (strMemberNo.length > 0){
                           isValidInputData = true
                         }
@@ -1452,7 +1458,7 @@ class EchannelsEngine @Inject()
 
                     try{
                       if (isValidInputData){
-                        myMemberBalanceDetailsResponse_BatchData = getMemberBalanceDetailsRequestsCbs(myMemberBalanceDetails_BatchRequest)
+                        //myMemberBalanceDetailsResponse_BatchData = getMemberBalanceDetailsRequestsCbs(myMemberBalanceDetails_BatchRequest)
                         /*
                         myDB.withConnection { implicit  myconn =>
 
@@ -1712,12 +1718,12 @@ class EchannelsEngine @Inject()
         myMemberBalanceDetailsResponse_BatchData  = myMemberBalanceDetailsResponse_BatchData :+ myMemberBalanceDetailsResponse_Batch
       }
 
-      val myMemberBalanceDetailsResponse = new MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
+      //val myMemberBalanceDetailsResponse = new MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
 
-      val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
+      //val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        //Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
@@ -1727,10 +1733,93 @@ class EchannelsEngine @Inject()
         case tr: Throwable =>
           Log_errors(strApifunction + " : " + tr.getMessage())
       }
-
+      /*
       val r: Result = Ok(jsonResponse)
       r
-    }(myExecutionContext)
+      */
+      //
+      //val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest)
+      /*
+      val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
+
+      val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
+      var r: Result = Ok(jsonResponse)
+      */
+      //val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
+      val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
+      
+      Log_data(strApifunction + " : " + "Step 1 ")
+      val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
+          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])
+      Log_data(strApifunction + " : " + "Step 2 ") 
+      /*
+      entityFut.onComplete {
+        case Success(myDataResponse) =>
+          try{
+            Log_data(strApifunction + " : " + "Success - " + myDataResponse.toString())
+            myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetails(myDataResponse)
+            val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
+            val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
+            //r = Ok(jsonResponse)
+            Ok(jsonResponse)
+          }
+          catch
+          {
+            case ex: Exception =>
+              Log_errors(strApifunction + " : " + ex.getMessage())
+            case tr: Throwable =>
+              Log_errors(strApifunction + " : " + tr.getMessage())
+          }
+        case Failure(f) =>
+          try{
+            Log_data(strApifunction + " : " + "Failure - " + f.getMessage)
+            val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
+            val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse) 
+            //r = Ok(jsonResponse)
+            Ok(jsonResponse)
+          }
+          catch
+          {
+            case ex: Exception =>
+              Log_errors(strApifunction + " : " + ex.getMessage())
+            case tr: Throwable =>
+              Log_errors(strApifunction + " : " + tr.getMessage())
+          }
+      }
+      */
+      val procMemberBalanceDetails = (myDataResponse: CbsMessage_MemberBalanceDetails_Batch) => {
+        val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetails(myDataResponse)
+        val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
+        val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
+        jsonResponse
+      }
+      //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
+
+      entityFut
+        .withTimeout {httpCallDelay.seconds}
+        .map { x =>
+          Ok(procMemberBalanceDetails(x))
+        }
+        .recover {
+          case e: scala.concurrent.TimeoutException =>
+            InternalServerError("timeout")
+        }
+      /*
+      val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
+        responseFuture.flatMap(resp =>
+          Ok(
+            {
+              val myDataResponse = Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch]
+              myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetails(myDataResponse)
+              val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
+              jsonResponse
+            }
+          )
+        )
+        */
+      //r   
+
+    //}(myExecutionContext)
   }
   def getMemberContributionsDetails = Action.async { request =>
     Future {
@@ -3230,12 +3319,15 @@ class EchannelsEngine @Inject()
                     sourceDataTable.addColumnMetadata("ChannelType", java.sql.Types.VARCHAR)
                     */
 
-                    var myMemberNo : BigDecimal = 0
-                    var strMemberNo : String = ""
-                    var myIDNo : BigDecimal = 0
-                    var strIDNo : String = ""
-                    var strPhoneNo : String = ""
+                    var myMemberNo: BigDecimal = 0
+                    var strMemberNo: String = ""
+                    var myIDNo: BigDecimal = 0
+                    var strIDNo: String = ""
+                    var strPhoneNo: String = ""
                     //var strChannelType : String = ""
+                    var isValidMemberNo: Boolean = false
+                    var isValidIDNo: Boolean = false
+                    var isValidPhoneNo: Boolean = false
 
                     if (strRequest != null && strRequest != None){
                       strRequest = strRequest.trim
@@ -3252,6 +3344,9 @@ class EchannelsEngine @Inject()
                       strMemberNo = ""
                       strIDNo = ""
                       strPhoneNo = ""
+                      isValidMemberNo = false
+                      isValidIDNo = false
+                      isValidPhoneNo = false
 
                       try{
                         //strMemberNo
@@ -3263,9 +3358,12 @@ class EchannelsEngine @Inject()
                             strMemberNo = strMemberNo.replace(" ","")//Remove spaces
                             strMemberNo = strMemberNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
                             strMemberNo = strMemberNo.trim
-                            val isNumeric : Boolean = strMemberNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
-                            if (isNumeric == true){
-                              myMemberNo = strMemberNo.toDouble
+                            val isNumeric: Boolean = strMemberNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
+                            if (isNumeric){
+                              myMemberNo = BigDecimal(strMemberNo)
+                              if (myMemberNo > 0 && (strMemberNo.length >= 1 && strMemberNo.length <= 7)){
+                                isValidMemberNo = true
+                              }
                             }
                           }
                         }
@@ -3279,13 +3377,15 @@ class EchannelsEngine @Inject()
                             strIDNo = strIDNo.replace(" ","")//Remove spaces
                             strIDNo = strIDNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
                             strIDNo = strIDNo.trim
-                            val isNumeric : Boolean = strIDNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
-                            if (isNumeric == true){
-                              myIDNo = strIDNo.toDouble
+                            val isNumeric: Boolean = strIDNo.toString.matches("[0-9]+")//"\\d+", //[0-9]
+                            if (isNumeric){
+                              myIDNo = BigDecimal(strIDNo)
+                              if (myIDNo > 0 && (strIDNo.length >= 7 && strIDNo.length <= 8)){
+                                isValidIDNo = true
+                              }
                             }
                           }
                         }
-
 
                         //strPhoneNo
                         strPhoneNo = myMemberDetails.phoneno.toString()
@@ -3296,9 +3396,16 @@ class EchannelsEngine @Inject()
                             strPhoneNo = strPhoneNo.replace(" ","")//Remove spaces
                             strPhoneNo = strPhoneNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
                             strPhoneNo = strPhoneNo.trim
+                            val isNumeric: Boolean = strPhoneNo.toString.matches("[0-9]+")
+                            if (isNumeric){
+                              if (strPhoneNo.length >= 10){
+                                if ((strPhoneNo.length == 10 && strPhoneNo.substring(0,1) == "0") || strPhoneNo.length == 12 && strPhoneNo.substring(0,3) == "254"){
+                                  isValidPhoneNo = true
+                                }
+                              }
+                            }
                           }
                         }
-
 
                       }
                       catch {
@@ -3309,8 +3416,8 @@ class EchannelsEngine @Inject()
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
-                      if (isValidInputData == false){
-                        if (strMemberNo.length > 0){
+                      if (!isValidInputData){
+                        if (isValidMemberNo && isValidIDNo && isValidPhoneNo){
                           isValidInputData = true
                         }
                       }
@@ -3426,6 +3533,15 @@ class EchannelsEngine @Inject()
                       }
                       else{
                         responseMessage = "Invalid Input Data length"
+                        if (!isValidMemberNo){
+                            responseMessage = "Invalid Input Data - memberno"
+                          }
+                          else if (!isValidIDNo){
+                            responseMessage = "Invalid Input Data - idno"
+                          }
+                          else if (!isValidPhoneNo){
+                            responseMessage = "Invalid Input Data - phoneno"
+                          }
                         /*
                         if (isValidLength == true){
                           responseMessage = "Invalid Input Data length"
@@ -5877,6 +5993,7 @@ class EchannelsEngine @Inject()
       r
     }(myExecutionContext)
   }
+  /*
   def getMemberDetailsCbs(memberNoCbs: java.math.BigDecimal, iDNoCbs: java.math.BigDecimal, phoneNoCbs : String) : Int = {
     /*
     try{
@@ -6010,6 +6127,7 @@ class EchannelsEngine @Inject()
     }
     return responseCode
   }
+  */
   def getMemberBalanceDetailsCbs(memberNoCbs: Int) : ResultOutput_Balances_Cbs = {
 
     val strApifunction : String = "getMemberBalanceDetailsCbs"
@@ -6170,6 +6288,7 @@ class EchannelsEngine @Inject()
     val myOutput = ResultOutput_Balances_Cbs(isSuccessful, myEe_Db, myEr_Db, myAvc_Db, myTotal_Db, myEe_Dc, myEr_Dc,  myAvc_Dc, myTotal_Dc)
     return myOutput
   }
+  /*
   def getBeneficiaryDetailsCbs(memberIdCbs: java.math.BigDecimal) : Unit = {
     /*
     try{
@@ -6247,6 +6366,7 @@ class EchannelsEngine @Inject()
         Log_errors(strApifunction + " : " + tr.getMessage())
     }
   }
+  */
   //def sendProjectionBenefitsRequestsCbs(myMemberNo : Int, strMemberType  : String, myProjectionType  : Int): Unit = {
   def sendProjectionBenefitsRequestsCbs(myMemberNo: Int, strMemberType: String, myProjectionType: Int, myMemberProjectionBenefits_Request: MemberProjectionBenefits_Request): Unit = {
     val strApifunction: String = "sendProjectionBenefitsRequestsCbs"
@@ -6396,8 +6516,10 @@ class EchannelsEngine @Inject()
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
+        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
         var start_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
         val myStart_time: Future[String] = Future(start_time_DB)
         val myMember_No: Future[Int] = Future(myMemberNo)
@@ -9437,8 +9559,9 @@ class EchannelsEngine @Inject()
           return myOutput
         }
         */
+        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri, entity = data).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
@@ -9853,8 +9976,10 @@ class EchannelsEngine @Inject()
           return myOutput
         }
         */
+        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri, entity = data).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
@@ -10724,8 +10849,11 @@ class EchannelsEngine @Inject()
           return myOutput
         }
         */
+        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+        //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri, entity = data).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
@@ -11203,6 +11331,569 @@ class EchannelsEngine @Inject()
 
     myMemberBalanceDetailsResponse_BatchData
   }
+  def getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest: MemberBalanceDetails_BatchRequest): Future[HttpResponse] = {
+    val strApifunction: String = "getMemberBalanceDetailsRequestsCbs_test"
+    var strApiURL: String = ""
+    var isRequestSuccessful: Boolean = false
+    var memberNo: Int = 0
+    var myiDNo: Int = 0
+    var statusCode: Int = 1
+    var strMemberNo: String = ""
+    var strFullNames: String = ""
+    var strRelationship: String = ""
+    var strIdNo: String = ""
+    var strPhoneNo: String = ""
+    var strGender: String = ""
+    var membertype: String = ""
+    var strdcee: String = ""
+    var strdcer: String = ""
+    var strdcavr: String = ""
+    var strdctotal: String = ""
+    var strdbee: String = ""
+    var strdber: String = ""
+    var strdbtotal: String = ""
+    var dcee: BigDecimal = 0
+    var dcer: BigDecimal = 0
+    var dcavr: BigDecimal = 0
+    var dctotal: BigDecimal = 0
+    var dbee: BigDecimal = 0
+    var dber: BigDecimal = 0
+    var dbtotal: BigDecimal = 0
+    var strStatusCode: String = ""
+    var strStatusDescription: String = ""
+    var myMemberBalanceDetailsResponse_BatchData : Seq[MemberBalanceDetailsResponse_Batch] = Seq.empty[MemberBalanceDetailsResponse_Batch]
+    val strIntRegex: String = "[0-9]+" //Integers only
+    val strDecimalRegex: String = "^[0-9]*\\.?[0-9]+$" //Decimals
+    try{
+
+      strApiURL = ""
+      strApiURL = "https://e-channels.kppf.co.ke/getmemberbalancedetails"
+      /*
+      strApiURL = getCBSProvisionalStatementURL(myMemberId)
+      if (strApiURL == null){
+        strApiURL = ""
+      }
+
+      if (strApiURL.trim.length == 0){
+        Log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
+        val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
+        return myOutput
+      }
+      */
+    }
+    catch {
+      case io: Throwable =>
+        Log_errors(strApifunction + " : " + io.getMessage())
+      case ex: Exception =>
+        Log_errors(strApifunction + " : " + ex.getMessage())
+    }
+
+    val myuri: Uri = strApiURL
+
+    var isValidData: Boolean = false
+    var isSuccessful: Boolean = false
+    var myjsonData: String = ""
+
+    try
+    {
+      /*
+      if (myMemberNo > 0 && myMemberId > 0){
+        isValidData = true
+      }
+      else{
+        Log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
+        val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
+        return myOutput
+      }
+      */
+      isValidData = true//TESTS ONLY
+
+      implicit val MemberBalanceDetails_RequestWrites = Json.writes[MemberBalanceDetails_Request]
+      implicit val MemberBalanceDetails_BatchRequestWrites = Json.writes[MemberBalanceDetails_BatchRequest]
+
+      val jsonResponse = Json.toJson(myMemberBalanceDetails_BatchRequest)
+      myjsonData = jsonResponse.toString()
+
+      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+
+    }
+    catch
+    {
+      case ex: Exception =>
+        isSuccessful = false
+      case t: Throwable =>
+        isSuccessful = false
+    }
+
+    statusCode = 1
+    strStatusDescription = "No Response Data received"
+    //Lets create a default response for failed entries
+    try{
+      myMemberBalanceDetails_BatchRequest.memberdata.foreach(myMemberDetails => {
+        strMemberNo = myMemberDetails.memberno.toString()
+        if (strMemberNo != null && strMemberNo != None){
+          strMemberNo = strMemberNo.trim
+          if (strMemberNo.length > 0){
+            strMemberNo = strMemberNo.replace("'","")//Remove apostrophe
+            strMemberNo = strMemberNo.replace(" ","")//Remove spaces
+            strMemberNo = strMemberNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+            strMemberNo = strMemberNo.trim
+            val isNumeric : Boolean = strMemberNo.toString.matches(strIntRegex)
+            if (isNumeric){
+              memberNo = strMemberNo.toInt
+            }
+          }
+        }
+
+        val myMemberBalanceDetailsResponse_Batch = new MemberBalanceDetailsResponse_Batch(memberNo, strFullNames, strPhoneNo, membertype, dcee, dcer, dcavr, dctotal, dbee, dber, dbtotal, statusCode, strStatusDescription)
+        myMemberBalanceDetailsResponse_BatchData  = myMemberBalanceDetailsResponse_BatchData :+ myMemberBalanceDetailsResponse_Batch
+      })
+    }
+    catch
+    {
+      case ex: Exception =>
+        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+      case t: Throwable =>
+        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+    }
+
+    val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+    val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    responseFuture
+
+  }
+  def unpackMemberBalanceDetails(myDataResponse: CbsMessage_MemberBalanceDetails_Batch) : Seq[MemberBalanceDetailsResponse_Batch] = {
+    val start_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
+    val strApifunction: String = "unpackMemberBalanceDetails"
+    var isRequestSuccessful: Boolean = false
+    var memberNo: Int = 0
+    var myiDNo: Int = 0
+    var statusCode: Int = 1
+    var strMemberNo: String = ""
+    var strFullNames: String = ""
+    var strRelationship: String = ""
+    var strIdNo: String = ""
+    var strPhoneNo: String = ""
+    var strGender: String = ""
+    var membertype: String = ""
+    var strdcee: String = ""
+    var strdcer: String = ""
+    var strdcavr: String = ""
+    var strdctotal: String = ""
+    var strdbee: String = ""
+    var strdber: String = ""
+    var strdbtotal: String = ""
+    var dcee: BigDecimal = 0
+    var dcer: BigDecimal = 0
+    var dcavr: BigDecimal = 0
+    var dctotal: BigDecimal = 0
+    var dbee: BigDecimal = 0
+    var dber: BigDecimal = 0
+    var dbtotal: BigDecimal = 0
+    var strStatusCode: String = ""
+    var strStatusDescription: String = ""
+    var myMemberBalanceDetailsResponse_BatchData : Seq[MemberBalanceDetailsResponse_Batch] = Seq.empty[MemberBalanceDetailsResponse_Batch]
+    val strIntRegex: String = "[0-9]+" //Integers only
+    val strDecimalRegex: String = "^[0-9]*\\.?[0-9]+$" //Decimals
+    var strResponseData: String = ""
+    var myjsonData: String = ""
+    var myCount: Int = 0
+    var strCode: String = ""
+    //val start_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
+    val stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
+
+    try{
+      if (myDataResponse != null){
+        if (1 == 1){//if (myData.getOrElse(None) != None){
+          //val myTransactionResponse =  myData.get
+          if (1 == 1){//if (myData.get != None){
+            strResponseData = myDataResponse.toString()
+
+            //Log_errors(strApifunction + " : " + "strResponseData - " + strResponseData)
+
+            //val myTransactionResponse = myData.get
+            if (myDataResponse != null){
+              //strResponseData = myTransactionResponse.toString()
+
+              //log_errors(strApifunction + " : " + "strResponseData - " + strResponseData)
+              //val myResultCbsMessage_BatchData = myData.value.get
+              if (1 == 1) {
+
+                Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+
+                //var start_time_DB: String = ""
+                //var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
+
+                myMemberBalanceDetailsResponse_BatchData = Seq.empty[MemberBalanceDetailsResponse_Batch]
+                
+                if (myDataResponse.memberdata != null) {
+
+                  myCount = myDataResponse.memberdata.length
+
+                  val myCbsMessageData = myDataResponse.memberdata
+                  if (myCbsMessageData != null) {
+                    myCbsMessageData.foreach(myCbsData => {
+
+                      strMemberNo = ""
+                      strFullNames = ""
+                      strPhoneNo = ""
+                      membertype = ""
+                      strdcee = ""
+                      strdcer = ""
+                      strdcavr = ""
+                      strdctotal = ""
+                      strdbee = ""
+                      strdber = ""
+                      strdbtotal = ""
+                      memberNo = 0
+                      dcee = 0
+                      dcer = 0
+                      dcavr = 0
+                      dctotal = 0
+                      dbee = 0
+                      dber = 0
+                      dbtotal = 0
+
+                      statusCode = 1
+                      strStatusCode = ""
+                      strStatusDescription = ""
+
+                      //strMemberNo
+                      if (myCbsData.memberno != null) {
+                        if (myCbsData.memberno.get != null) {
+                          val myData = myCbsData.memberno.get
+                          strMemberNo = myData.toString()
+                          if (strMemberNo != null && strMemberNo != null){
+                            strMemberNo = strMemberNo.trim
+                            if (strMemberNo.length > 0){
+                              strMemberNo = strMemberNo.replace("'","")//Remove apostrophe
+                              strMemberNo = strMemberNo.replace(" ","")//Remove spaces
+                              strMemberNo = strMemberNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strMemberNo = strMemberNo.trim
+                              val isNumeric: Boolean = strMemberNo.toString.matches(strIntRegex)//"\\d+", //[0-9]
+                              if (isNumeric){
+                                memberNo = strMemberNo.toInt
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strFullNames
+                      if (myCbsData.fullnames != null) {
+                        if (myCbsData.fullnames.get != null) {
+                          val myData = myCbsData.fullnames.get
+                          strFullNames = myData.toString()
+                          if (strFullNames != null && strFullNames != null){
+                            strFullNames = strFullNames.trim
+                            if (strFullNames.length > 0){
+                              strFullNames = strFullNames.replace("'","")//Remove apostrophe
+                              strFullNames = strFullNames.replace("  "," ")//Remove double spaces
+                              strFullNames = strFullNames.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strFullNames = strFullNames.trim
+                            }
+                          }
+                        }
+                      }
+
+                      //strPhoneNo
+                      if (myCbsData.phoneno != null) {
+                        if (myCbsData.phoneno.get != null) {
+                          val myData = myCbsData.phoneno.get
+                          strPhoneNo = myData.toString()
+                          if (strPhoneNo != null && strPhoneNo != null){
+                            strPhoneNo = strPhoneNo.trim
+                            if (strPhoneNo.length > 0){
+                              strPhoneNo = strPhoneNo.replace("'","")//Remove apostrophe
+                              strPhoneNo = strPhoneNo.replace(" ","")//Remove spaces
+                              strPhoneNo = strPhoneNo.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strPhoneNo = strPhoneNo.trim
+                            }
+                          }
+                        }
+                      }
+
+                      //membertype
+                      if (myCbsData.membertype != null) {
+                        if (myCbsData.membertype.get != null) {
+                          val myData = myCbsData.membertype.get
+                          membertype = myData.toString()
+                          if (membertype != null && membertype != null){
+                            membertype = membertype.trim
+                            if (membertype.length > 0){
+                              membertype = membertype.replace("'","")//Remove apostrophe
+                              membertype = membertype.replace(" ","")//Remove spaces
+                              membertype = membertype.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              membertype = membertype.trim
+                            }
+                          }
+                        }
+                      }
+
+                      //strdcee
+                      if (myCbsData.dcee != null) {
+                        if (myCbsData.dcee.get != null) {
+                          val myData = myCbsData.dcee.get
+                          strdcee = myData.toString()
+                          if (strdcee != null && strdcee != null){
+                            strdcee = strdcee.trim
+                            if (strdcee.length > 0){
+                              strdcee = strdcee.replace("'","")//Remove apostrophe
+                              strdcee = strdcee.replace(" ","")//Remove spaces
+                              strdcee = strdcee.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdcee = strdcee.trim
+                              val isNumeric: Boolean = strdcee.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dcee = BigDecimal(strdcee)
+                                dcee = dcee.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdcer
+                      if (myCbsData.dcer != null) {
+                        if (myCbsData.dcer.get != null) {
+                          val myData = myCbsData.dcer.get
+                          strdcer = myData.toString()
+                          if (strdcer != null && strdcer != null){
+                            strdcer = strdcer.trim
+                            if (strdcer.length > 0){
+                              strdcer = strdcer.replace("'","")//Remove apostrophe
+                              strdcer = strdcer.replace(" ","")//Remove spaces
+                              strdcer = strdcer.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdcer = strdcer.trim
+                              val isNumeric: Boolean = strdcer.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dcer = BigDecimal(strdcer)
+                                dcer = dcer.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdcavr
+                      if (myCbsData.dcavr != null) {
+                        if (myCbsData.dcavr.get != null) {
+                          val myData = myCbsData.dcavr.get
+                          strdcavr = myData.toString()
+                          if (strdcavr != null && strdcavr != null){
+                            strdcavr = strdcavr.trim
+                            if (strdcavr.length > 0){
+                              strdcavr = strdcavr.replace("'","")//Remove apostrophe
+                              strdcavr = strdcavr.replace(" ","")//Remove spaces
+                              strdcavr = strdcavr.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdcavr = strdcavr.trim
+                              val isNumeric: Boolean = strdcavr.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dcavr = BigDecimal(strdcavr)
+                                dcavr = dcavr.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdctotal
+                      if (myCbsData.dctotal != null) {
+                        if (myCbsData.dctotal.get != null) {
+                          val myData = myCbsData.dctotal.get
+                          strdctotal = myData.toString()
+                          if (strdctotal != null && strdctotal != null){
+                            strdctotal = strdctotal.trim
+                            if (strdctotal.length > 0){
+                              strdctotal = strdctotal.replace("'","")//Remove apostrophe
+                              strdctotal = strdctotal.replace(" ","")//Remove spaces
+                              strdctotal = strdctotal.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdctotal = strdctotal.trim
+                              val isNumeric: Boolean = strdctotal.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dctotal = BigDecimal(strdctotal)
+                                dctotal = dctotal.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdbee
+                      if (myCbsData.dbee != null) {
+                        if (myCbsData.dbee.get != null) {
+                          val myData = myCbsData.dbee.get
+                          strdbee = myData.toString()
+                          if (strdbee != null && strdbee != null){
+                            strdbee = strdbee.trim
+                            if (strdbee.length > 0){
+                              strdbee = strdbee.replace("'","")//Remove apostrophe
+                              strdbee = strdbee.replace(" ","")//Remove spaces
+                              strdbee = strdbee.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdbee = strdbee.trim
+                              val isNumeric: Boolean = strdbee.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dbee = BigDecimal(strdbee)
+                                dbee = dbee.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdbee
+                      if (myCbsData.dber != null) {
+                        if (myCbsData.dber.get != null) {
+                          val myData = myCbsData.dber.get
+                          strdber = myData.toString()
+                          if (strdber != null && strdber != null){
+                            strdber = strdber.trim
+                            if (strdber.length > 0){
+                              strdber = strdber.replace("'","")//Remove apostrophe
+                              strdber = strdber.replace(" ","")//Remove spaces
+                              strdber = strdber.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdber = strdber.trim
+                              val isNumeric: Boolean = strdber.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dber = BigDecimal(strdber)
+                                dber = dber.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strdbtotal
+                      if (myCbsData.dbtotal != null) {
+                        if (myCbsData.dbtotal.get != null) {
+                          val myData = myCbsData.dbtotal.get
+                          strdbtotal = myData.toString()
+                          if (strdbtotal != null && strdbtotal != null){
+                            strdbtotal = strdbtotal.trim
+                            if (strdbtotal.length > 0){
+                              strdbtotal = strdbtotal.replace("'","")//Remove apostrophe
+                              strdbtotal = strdbtotal.replace(" ","")//Remove spaces
+                              strdbtotal = strdbtotal.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strdbtotal = strdbtotal.trim
+                              val isNumeric: Boolean = strdbtotal.toString.matches(strDecimalRegex)
+                              if (isNumeric){
+                                dbtotal = BigDecimal(strdbtotal)
+                                dbtotal = dbtotal.setScale(2,mode = BigDecimal.RoundingMode.HALF_EVEN)
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strStatusCode
+                      if (myCbsData.statuscode != null) {
+                        if (myCbsData.statuscode.get != null) {
+                          val myData = myCbsData.statuscode.get
+                          strStatusCode = myData.toString()
+                          if (strStatusCode != null && strStatusCode != null){
+                            strStatusCode = strStatusCode.trim
+                            if (strStatusCode.length > 0){
+                              strStatusCode = strStatusCode.replace("'","")//Remove apostrophe
+                              strStatusCode = strStatusCode.replace(" ","")//Remove spaces
+                              strStatusCode = strStatusCode.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strStatusCode = strStatusCode.trim
+                              val isNumeric: Boolean = strStatusCode.toString.matches(strIntRegex)//"\\d+", //[0-9]
+                              if (isNumeric){
+                                statusCode = strStatusCode.toInt
+                              }
+                            }
+                          }
+                        }
+                      }
+
+                      //strStatusDescription
+                      if (myCbsData.statusdescription != null) {
+                        if (myCbsData.statusdescription.get != null) {
+                          val myData = myCbsData.statusdescription.get
+                          strStatusDescription = myData.toString()
+                          if (strStatusDescription != null && strStatusDescription != null){
+                            strStatusDescription = strStatusDescription.trim
+                            if (strStatusDescription.length > 0){
+                              strStatusDescription = strStatusDescription.replace("'","")//Remove apostrophe
+                              strStatusDescription = strStatusDescription.replace("  "," ")//Remove double spaces
+                              strStatusDescription = strStatusDescription.replaceAll("^\"|\"$", "") //Remove beginning and ending double quote (") from a string.
+                              strStatusDescription = strStatusDescription.trim
+                            }
+                          }
+                        }
+                      }
+
+                      //lets create balancedata
+                      val myMemberBalanceDetailsResponse_Batch = MemberBalanceDetailsResponse_Batch(memberNo, strFullNames, strPhoneNo, membertype, dcee, dcer, dcavr, dctotal, dbee, dber, dbtotal, statusCode, strStatusDescription)
+                      myMemberBalanceDetailsResponse_BatchData  = myMemberBalanceDetailsResponse_BatchData :+ myMemberBalanceDetailsResponse_Batch
+                      /*
+                      //balancedata
+                      if (myCbsData.balancedata != null) {
+                        if (myCbsData.balancedata.get != null) {
+                          val myBalanceData = myCbsData.balancedata.get
+
+                          if (myBalanceData != null) {
+                            myBalanceData.foreach(myBalData => {
+                            })
+                          }
+                          
+                        }
+                      }
+                      */
+                      /*
+                      isRequestSuccessful = true
+
+                      //TESTS ONLY
+                      val strMessage: String = "myOpenEe - " + myOpenEe + ", myOpenEr - " + myOpenEr + ", myOpenAvc - " + myOpenAvc +
+                        ", myContrEe - " + myContrEe + ", myContrEr - " + myContrEr + ", myContrAvc - " + myContrAvc +
+                        ", myGrandTotal - " + myGrandTotal + ", myEe - " + myEe + ", myEr - " + myEr +
+                        ", myAvc - " + myAvc + ", memberNo - " + myMemberNo + ", myMemberId - " + myMemberId
+                      Log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
+                      isDataExists = true
+                      */
+                    })
+                  }
+                }
+              }
+            }
+            else{
+              strCode = "myTransactionResponse.get != None"
+            }
+            /*
+            strMsg = "DrAccountNumber - " + strDrAccountNumber + " , CrAccountNumber - " + strCrAccountNumber + 
+            " , transactionAmt - " + transactionAmt.toString() + " , availableBal - " + availableBal.toString() +
+            " , currentBal - " + currentBal.toString() + " , responseCode - " + responseCode +
+            " , responseRef - " + responseRef + " , responseDesc - " + responseDesc +
+            " , olTrxCode - " + olTrxCode + " , postedToCbs - " + postedToCbs.toString()
+
+            Log_errors(strApifunction + " : " + strMsg)
+            */
+            
+
+          }
+        }
+        else {
+          //Lets log the status code returned by CBS webservice
+          val myStatusCode_Cbs : Int = 500//res.status.intValue()
+          val strStatusMessage_Cbs: String = "Failed"
+          val strMessage: String = "status - " + myStatusCode_Cbs + ", status message - " + strStatusMessage_Cbs
+          Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None error occured.")
+          //res.discardEntityBytes()
+        }
+      }
+      else{
+        //res.discardEntityBytes()
+      }
+    }
+    catch {
+      case ex: Exception =>
+        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+      case t: Throwable =>
+        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+    }
+
+    myMemberBalanceDetailsResponse_BatchData
+  }
   def getMemberContributionsDetailsRequestsCbs(myMemberContributionsDetails_BatchRequest: MemberContributionsDetails_BatchRequest): Seq[MemberContributionsDetailsResponse_Batch] = {
     val strApifunction: String = "getMemberContributionsDetailsRequestsCbs"
     var strApiURL: String = ""
@@ -11361,8 +12052,10 @@ class EchannelsEngine @Inject()
           return myOutput
         }
         */
+        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri, entity = data).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
@@ -11786,6 +12479,7 @@ class EchannelsEngine @Inject()
     myMemberContributionsDetailsResponse_BatchData
   }
   //def getMemberDetails_MemberNo(memberNoCbs: java.math.BigDecimal, iDNoCbs: java.math.BigDecimal, phoneNoCbs : String): SQLServerDataTable = {
+    /*
   def getMemberDetails_MemberNo(memberNoCbs: java.math.BigDecimal, iDNoCbs: java.math.BigDecimal, phoneNoCbs : String): ResultOutput_Cbs = {
     //var is_Successful : Boolean = false
     var isValidEntry : Boolean = false
@@ -11989,6 +12683,8 @@ class EchannelsEngine @Inject()
     }
     return  myResultOutput_Cbs
   }
+  */
+  /*
   def getBeneficiaryDetails_MemberId(memberIdCbs: java.math.BigDecimal): SQLServerDataTable = {
     //var is_Successful : Boolean = false
     var isValidEntry : Boolean = false
@@ -12122,6 +12818,7 @@ class EchannelsEngine @Inject()
     }
     return  sourceDataTable
   }
+  */
   //def sendProjectionBenefitsResponseEchannel(memberno: Int, statuscode: Int, statusdescription: String, myProjectionbenefitsdata: Seq[MemberProjectionBenefitsDetailsResponse_Batch]): Unit = {
   //def sendProjectionBenefitsResponseEchannel(memberno: Int, statuscode: Int, statusdescription: String, myProjectionbenefitsdata: MemberProjectionBenefitsDetailsResponse_Batch): Unit = {
   def sendProjectionBenefitsResponseEchannel(myProjectionbenefitsdata: MemberProjectionBenefitsDetailsResponse_BatchData, entryID: java.math.BigDecimal): Unit = {
@@ -12922,6 +13619,12 @@ class EchannelsEngine @Inject()
       r
     }(myExecutionContext)
   }
+  /*
+  def index_test = Action.async {
+    val futureInt = scala.concurrent.Future { intensiveComputation() }
+    futureInt.map(i => Ok("Got result: " + i))
+  }
+  */
   def Log_data(mydetail : String) : Unit = {
     //var strpath_file2 : String = "C:\\Program Files\\Biometric_System\\mps1\\Logs.txt"
     try{
