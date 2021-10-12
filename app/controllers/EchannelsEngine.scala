@@ -49,6 +49,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import play.api.libs.concurrent.Futures._
 //import com.microsoft.sqlserver.jdbc.SQLServerDataTable
 //(cc: ControllerComponents,myDB : Database,myExecutionContext: MyExecutionContext)
+//myExecutionContext
 trait MyExecutionContext extends ExecutionContext
 
 class MyExecutionContextImpl @Inject()(system: ActorSystem)
@@ -62,9 +63,23 @@ class MyExecutionContextModule extends AbstractModule {
 
   }
 }
+//myExecutionContext2
+trait MyExecutionContext2 extends ExecutionContext
+
+class MyExecutionContextImpl2 @Inject()(system: ActorSystem)
+  extends CustomExecutionContext(system, "file-write-io-operations-dispatcher") with MyExecutionContext2
+
+class MyExecutionContextModule2 extends AbstractModule {
+
+  override def configure(): Unit = {
+    bind(classOf[MyExecutionContext2])
+      .to(classOf[MyExecutionContextImpl2])
+
+  }
+}
 
 class EchannelsEngine @Inject()
-  (myExecutionContext: MyExecutionContext,cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
+  (myExecutionContext: MyExecutionContext, myExecutionContextFileWrite: MyExecutionContext2, cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
   extends AbstractController(cc) {
 
   //case class MpesaTransactionStatus_Request(mobileno: String, transactioncode: String, amount: Float)
@@ -142,7 +157,7 @@ class EchannelsEngine @Inject()
     implicit val CbsMessage_MemberDetailsValidateFormat = jsonFormat3(CbsMessage_MemberDetailsValidate.apply)
   }
 
-  case class CbsMessage_MemberDetailsValidate_Batch(memberdata: Seq[CbsMessage_MemberDetailsValidate])
+  case class CbsMessage_MemberDetailsValidate_Batch(memberdata: Option[Seq[CbsMessage_MemberDetailsValidate]])
   case object CbsMessage_MemberDetailsValidate_Batch extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberDetailsValidate_BatchFormat = jsonFormat1(CbsMessage_MemberDetailsValidate_Batch.apply)
   }
@@ -170,7 +185,7 @@ class EchannelsEngine @Inject()
     implicit val CbsMessage_MemberDetailsGeneral_BatchFormat = jsonFormat3(CbsMessage_MemberDetailsGeneral_Batch.apply)
   }
 
-  case class CbsMessage_MemberDetailsGeneral_BatchData(memberdata: Seq[CbsMessage_MemberDetailsGeneral_Batch])
+  case class CbsMessage_MemberDetailsGeneral_BatchData(memberdata: Option[Seq[CbsMessage_MemberDetailsGeneral_Batch]])
   case object CbsMessage_MemberDetailsGeneral_BatchData extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberDetailsGeneral_BatchDataFormat = jsonFormat1(CbsMessage_MemberDetailsGeneral_BatchData.apply)
   }
@@ -180,8 +195,8 @@ class EchannelsEngine @Inject()
   case object CbsMessage_MemberBalanceDetails extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberBalanceDetailsFormat = jsonFormat13(CbsMessage_MemberBalanceDetails.apply)
   }
-
-  case class CbsMessage_MemberBalanceDetails_Batch(memberdata: Seq[CbsMessage_MemberBalanceDetails])
+  //case class CbsMessage_MemberBalanceDetails_Batch(memberdata: Seq[CbsMessage_MemberBalanceDetails])
+  case class CbsMessage_MemberBalanceDetails_Batch(memberdata: Option[Seq[CbsMessage_MemberBalanceDetails]])
   case object CbsMessage_MemberBalanceDetails_Batch extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberBalanceDetails_BatchFormat = jsonFormat1(CbsMessage_MemberBalanceDetails_Batch.apply)
   }
@@ -191,8 +206,8 @@ class EchannelsEngine @Inject()
   case object CbsMessage_MemberContributionsDetails extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberContributionsDetailsFormat = jsonFormat11(CbsMessage_MemberContributionsDetails.apply)
   }
-
-  case class CbsMessage_MemberContributionsDetails_Batch(memberdata: Seq[CbsMessage_MemberContributionsDetails])
+  //case class CbsMessage_MemberContributionsDetails_Batch(memberdata: Seq[CbsMessage_MemberContributionsDetails])
+  case class CbsMessage_MemberContributionsDetails_Batch(memberdata: Option[Seq[CbsMessage_MemberContributionsDetails]])
   case object CbsMessage_MemberContributionsDetails_Batch extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_MemberContributionsDetails_BatchFormat = jsonFormat1(CbsMessage_MemberContributionsDetails_Batch.apply)
   }
@@ -345,7 +360,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound == true && isAuthTokenFound == true){
 
@@ -390,10 +405,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -422,10 +437,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound == true && responseCode == 0){
@@ -506,9 +521,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -523,9 +538,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
                     })
 
@@ -561,14 +576,14 @@ class EchannelsEngine @Inject()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(io.printStackTrace())
                                 entryID = 2
-                                Log_errors(strApifunction + " : " + io.getMessage())
+                                log_errors(strApifunction + " : " + io.getMessage())
                               //strErrorMsg = io.toString
                               case ex: Exception =>
                                 //ex.printStackTrace()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(ex.printStackTrace())
                                 entryID = 3
-                                Log_errors(strApifunction + " : " + ex.getMessage())
+                                log_errors(strApifunction + " : " + ex.getMessage())
                             }
                             //finally if (cs != null) cs.close()
                           }
@@ -578,14 +593,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again."
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again."
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
                         }
                       }
@@ -619,16 +634,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -638,31 +650,24 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
-                  }
-                  finally{
-
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
-                finally
-                {
-                  // your scala code here, such as to close a database connection
-                }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
               }
@@ -670,7 +675,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -694,15 +699,12 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
-      finally
-      {
-      }
 
       implicit val MemberDetailsResponse_BatchWrites = Json.writes[MemberDetailsResponse_Batch]
       implicit val MemberDetailsResponse_BatchDataWrites = Json.writes[MemberDetailsResponse_BatchData]
@@ -717,15 +719,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsResponse)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       val r: Result = Ok(jsonResponse)
@@ -809,7 +811,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound == true && isAuthTokenFound == true){
 
@@ -854,10 +856,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -886,10 +888,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound == true && responseCode == 0){
@@ -970,9 +972,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -987,9 +989,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
                     })
 
@@ -1023,14 +1025,14 @@ class EchannelsEngine @Inject()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(io.printStackTrace())
                                 entryID = 2
-                                Log_errors(strApifunction + " : " + io.getMessage())
+                                log_errors(strApifunction + " : " + io.getMessage())
                               //strErrorMsg = io.toString
                               case ex: Exception =>
                                 //ex.printStackTrace()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(ex.printStackTrace())
                                 entryID = 3
-                                Log_errors(strApifunction + " : " + ex.getMessage())
+                                log_errors(strApifunction + " : " + ex.getMessage())
                             }
                             //finally if (cs != null) cs.close()
                           }
@@ -1040,14 +1042,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again."
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again."
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
                         }
                       }
@@ -1081,16 +1083,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -1100,31 +1099,24 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
-                  }
-                  finally{
-
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
-                finally
-                {
-                  // your scala code here, such as to close a database connection
-                }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
               }
@@ -1132,7 +1124,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -1156,15 +1148,12 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
-      finally
-      {
-      }
 
       implicit val BeneficiaryDetailsResponse_BatchWrites = Json.writes[BeneficiaryDetailsResponse_Batch]
       implicit val BeneficiaryDetailsResponse_BatchDataWrites = Json.writes[BeneficiaryDetailsResponse_BatchData]
@@ -1179,15 +1168,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myBeneficiaryDetailsResponse)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       val r: Result = Ok(jsonResponse)
@@ -1269,7 +1258,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -1314,10 +1303,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -1346,10 +1335,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -1432,9 +1421,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -1628,13 +1617,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
                   }
                   catch {
@@ -1643,23 +1632,23 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
@@ -1668,7 +1657,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -1695,11 +1684,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
 
       implicit val MemberBalanceDetailsResponse_BatchWrites = Json.writes[MemberBalanceDetailsResponse_Batch]
@@ -1726,11 +1715,11 @@ class EchannelsEngine @Inject()
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
       /*
       val r: Result = Ok(jsonResponse)
@@ -1832,15 +1821,31 @@ class EchannelsEngine @Inject()
         val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
             responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])
             */
+        /*    
         val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
             responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
+            */
+        val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
+            responseFuture.flatMap(
+              resp => 
+                if (resp.entity != null && resp.status.intValue() == 200){
+                  Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch]
+                }
+                else {
+                  Future {
+                    log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+                    val x: CbsMessage_MemberBalanceDetails_Batch = null
+                    x
+                  }
+                }
+            )(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext    
         
         //Anonymous function
         val procMemberBalanceDetails = (myDataResponse: CbsMessage_MemberBalanceDetails_Batch) => {
           val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetailsCbs(myDataResponse)
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -1866,7 +1871,7 @@ class EchannelsEngine @Inject()
 
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse) 
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }(myExecutionContext)
       }
@@ -1878,13 +1883,13 @@ class EchannelsEngine @Inject()
   def getMemberContributionsDetails = Action.async { request =>
     //Future {
       val startDate: String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
-      var isProcessed : Boolean = false
+      var isProcessed: Boolean = false
       var entryID: Int = 0
-      var responseCode : Int = 1
-      var responseMessage : String = "Error occured during processing, please try again."
-      var myMemberContributionsDetailsResponse_BatchData : Seq[MemberContributionsDetailsResponse_Batch] = Seq.empty[MemberContributionsDetailsResponse_Batch]
+      var responseCode: Int = 1
+      var responseMessage: String = "Error occured during processing, please try again."
+      var myMemberContributionsDetailsResponse_BatchData: Seq[MemberContributionsDetailsResponse_Batch] = Seq.empty[MemberContributionsDetailsResponse_Batch]
       var myMemberContributionsDetails_BatchRequest_test: MemberContributionsDetails_BatchRequest = null
-      val strApifunction : String = "getMemberContributionsDetails"
+      val strApifunction: String = "getMemberContributionsDetails"
 
       try
       {
@@ -1950,7 +1955,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -1995,10 +2000,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -2027,10 +2032,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -2112,9 +2117,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -2236,13 +2241,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
                   }
                   catch {
@@ -2251,23 +2256,23 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
@@ -2276,7 +2281,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -2302,11 +2307,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
 
       implicit val MemberContributionsDetailsResponse_BatchWrites = Json.writes[MemberContributionsDetailsResponse_Batch]
@@ -2330,25 +2335,42 @@ class EchannelsEngine @Inject()
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       if (successfulEntry){
         val responseFuture = getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest_test)
-        
+        /*
         val entityFut: Future[CbsMessage_MemberContributionsDetails_Batch] =
           responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberContributionsDetails_Batch])(myExecutionContext)
+        */
+        val entityFut: Future[CbsMessage_MemberContributionsDetails_Batch] =
+          responseFuture.flatMap(
+            resp => 
+              if (resp.entity != null && resp.status.intValue() == 200){
+              //log_errors(strApifunction + " : " + " resp.status.intValue() " + resp.status.intValue().toString)
+              //log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString)
+                Unmarshal(resp.entity).to[CbsMessage_MemberContributionsDetails_Batch]
+              }
+              else {
+                Future {
+                  log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+                  val x: CbsMessage_MemberContributionsDetails_Batch = null
+                  x
+                }
+              }
+          )(myExecutionContext)
 
         //Anonymous function
         val procMemberContributionsDetails = (myDataResponse: CbsMessage_MemberContributionsDetails_Batch) => {
           val myMemberContributionsDetailsResponse_BatchData = unpackMemberContributionsDetailsCbs(myDataResponse)
           val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse)
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -2366,14 +2388,14 @@ class EchannelsEngine @Inject()
       else{
         Future {
           if (myMemberContributionsDetailsResponse_BatchData.isEmpty || myMemberContributionsDetailsResponse_BatchData == true){
-            val myMemberContributionsDetailsResponse_Batch = new MemberContributionsDetailsResponse_Batch(0, "", "", 0, 0, 0, 0, "", "", responseCode, responseMessage)
+            val myMemberContributionsDetailsResponse_Batch = MemberContributionsDetailsResponse_Batch(0, "", "", 0, 0, 0, 0, "", "", responseCode, responseMessage)
             myMemberContributionsDetailsResponse_BatchData  = myMemberContributionsDetailsResponse_BatchData :+ myMemberContributionsDetailsResponse_Batch
           }
 
-          val myMemberContributionsDetailsResponse = new MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
+          val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse) 
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }
       }
@@ -2398,13 +2420,13 @@ class EchannelsEngine @Inject()
         var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
-        var isDataFound : Boolean = false
-        var isAuthTokenFound : Boolean = false
-        var isCredentialsFound : Boolean = false
-        var strChannelType : String = ""
-        var strUserName : String = ""
-        var strPassword : String = ""
-        var strClientIP : String = ""
+        var isDataFound: Boolean = false
+        var isAuthTokenFound: Boolean = false
+        var isCredentialsFound: Boolean = false
+        var strChannelType: String = ""
+        var strUserName: String = ""
+        var strPassword: String = ""
+        var strClientIP: String = ""
 
         if (!request.body.asJson.isEmpty) {
           isDataFound = true
@@ -2457,7 +2479,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -2502,10 +2524,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -2543,10 +2565,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -2628,9 +2650,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -3079,16 +3101,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -3098,30 +3117,30 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
               }
               case JsError(e) => {
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -3146,11 +3165,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
 
       implicit val MemberDetailsGeneralResponse_BatchWrites = Json.writes[MemberDetailsGeneralResponse_Batch]
@@ -3179,24 +3198,36 @@ class EchannelsEngine @Inject()
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
       if (successfulEntry){
         val responseFuture = getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest_test)
         
         val entityFut: Future[CbsMessage_MemberDetailsGeneral_BatchData] =
-          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsGeneral_BatchData])(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
+          responseFuture.flatMap(
+          resp => 
+            if (resp.entity != null && resp.status.intValue() == 200){
+                Unmarshal(resp.entity).to[CbsMessage_MemberDetailsGeneral_BatchData]
+              }
+              else {
+                Future {
+                  log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+                  val x: CbsMessage_MemberDetailsGeneral_BatchData = null
+                  x
+                }
+              }
+          )(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
 
         //Anonymous function
         val procMemberDetailsGeneral = (myDataResponse: CbsMessage_MemberDetailsGeneral_BatchData) => {
           val myMemberDetailsGeneralResponse_BatchData = unpackMemberDetailsGeneralCbs(myDataResponse)
           val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -3222,7 +3253,7 @@ class EchannelsEngine @Inject()
             val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse)
 
             val jsonResponse = Json.toJson(myMemberDetailsResponse)
-            Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+            log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
             Ok(jsonResponse)
           }
       }
@@ -3307,7 +3338,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -3352,10 +3383,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -3393,10 +3424,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -3538,9 +3569,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -3555,9 +3586,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
                     })
 
@@ -3700,13 +3731,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
                   }
                   catch {
@@ -3715,30 +3746,30 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
               }
               case JsError(e) => {
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -3765,11 +3796,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
 
       implicit val MemberDetailsValidateResponse_BatchWrites = Json.writes[MemberDetailsValidateResponse_Batch]
@@ -3793,24 +3824,36 @@ class EchannelsEngine @Inject()
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
       if (successfulEntry){
       val responseFuture = validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest_test)
       
       val entityFut: Future[CbsMessage_MemberDetailsValidate_Batch] =
-        responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch])(myExecutionContext)
+        responseFuture.flatMap(
+        resp => 
+          if (resp.entity != null && resp.status.intValue() == 200){
+            Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch]
+          }
+          else {
+            Future {
+              log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+              val x: CbsMessage_MemberDetailsValidate_Batch = null
+              x
+            }
+          }
+        )(myExecutionContext)
 
       //Anonymous function
       val procMemberDetailsValidate = (myDataResponse: CbsMessage_MemberDetailsValidate_Batch) => {
         val myMemberDetailsValidateResponse_BatchData = unpackMemberDetailsValidateCbs(myDataResponse)
         val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
         val jsonResponse = Json.toJson(myMemberDetailsResponse)
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
         jsonResponse
       }
       //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -3835,7 +3878,7 @@ class EchannelsEngine @Inject()
           val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
-          Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }
       }
@@ -3919,7 +3962,7 @@ class EchannelsEngine @Inject()
         }
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -3964,10 +4007,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -4005,10 +4048,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -4153,9 +4196,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -4170,9 +4213,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
                     })
 
@@ -4203,14 +4246,14 @@ class EchannelsEngine @Inject()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(io.printStackTrace())
                                 entryID = 2
-                                Log_errors(strApifunction + " : " + io.getMessage())
+                                log_errors(strApifunction + " : " + io.getMessage())
                               //strErrorMsg = io.toString
                               case ex: Exception =>
                                 //ex.printStackTrace()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(ex.printStackTrace())
                                 entryID = 3
-                                Log_errors(strApifunction + " : " + ex.getMessage())
+                                log_errors(strApifunction + " : " + ex.getMessage())
                             }
                             //finally if (cs != null) cs.close()
                           }
@@ -4220,14 +4263,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again."
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again."
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
                         }
                       }
@@ -4261,16 +4304,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -4280,23 +4320,23 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
@@ -4305,7 +4345,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -4332,11 +4372,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
 
       implicit val MemberDetailsRegisteredResponse_BatchWrites = Json.writes[MemberDetailsRegisteredResponse_Batch]
@@ -4352,15 +4392,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsResponse)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       val r: Result = Ok(jsonResponse)
@@ -4443,7 +4483,7 @@ class EchannelsEngine @Inject()
 
         //Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
         //Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
-        Log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + " channeltype - " + strChannelType + " , request - " + strRequest  + " , startdate - " + startDate + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound && isAuthTokenFound){
 
@@ -4488,10 +4528,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -4529,10 +4569,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound && responseCode == 0){
@@ -4649,9 +4689,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from ECHANNELS */
@@ -4728,14 +4768,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again."
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again."
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
                         //}
                       }
@@ -4774,16 +4814,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -4793,23 +4830,23 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
@@ -4818,7 +4855,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -4842,11 +4879,11 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
       /*
       implicit val MemberProjectionBenefitsResponse_BatchWrites = Json.writes[MemberProjectionBenefitsResponse_Batch]
@@ -4865,15 +4902,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myProjectionBenefits_Response)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       val r: Result = Ok(jsonResponse)
@@ -4946,7 +4983,7 @@ class EchannelsEngine @Inject()
           strRequest = "Invalid Request Data"
         }
 
-        Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound == true && isAuthTokenFound == true){
 
@@ -4955,7 +4992,7 @@ class EchannelsEngine @Inject()
             var myByteAuthToken = Base64.getDecoder.decode(strAuthToken)
             var myAuthToken : String = new String(myByteAuthToken, StandardCharsets.UTF_8)
 
-            Log_data(strApifunction + " : myAuthToken - " + "**********" + " , strAuthToken - " + strAuthToken)
+            log_data(strApifunction + " : myAuthToken - " + "**********" + " , strAuthToken - " + strAuthToken)
 
             if (myAuthToken != null){
               myAuthToken = myAuthToken.trim
@@ -4991,10 +5028,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : "+ ex.getMessage())
+                log_errors(strApifunction + " : "+ ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -5024,10 +5061,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound == true && responseCode == 0){
@@ -5375,9 +5412,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /*
@@ -5433,9 +5470,9 @@ class EchannelsEngine @Inject()
                         }
                         catch {
                           case io: Throwable =>
-                            Log_errors(strApifunction + " : " + io.getMessage())
+                            log_errors(strApifunction + " : " + io.getMessage())
                           case ex: Exception =>
-                            Log_errors(strApifunction + " : " + ex.getMessage())
+                            log_errors(strApifunction + " : " + ex.getMessage())
                         }
                     })
 
@@ -5485,14 +5522,14 @@ class EchannelsEngine @Inject()
                                 responseMessage = "Error occured during processing, please try again." + strBatchNo + " a"
                                 //println(io.printStackTrace())
                                 entryID = 2
-                                Log_errors(strApifunction + " : " + io.getMessage())
+                                log_errors(strApifunction + " : " + io.getMessage())
                               //strErrorMsg = io.toString
                               case ex: Exception =>
                                 //ex.printStackTrace()
                                 responseMessage = "Error occured during processing, please try again." //+ strBatchNo + " b"
                                 //println(ex.printStackTrace())
                                 entryID = 3
-                                Log_errors(strApifunction + " : " + ex.getMessage())
+                                log_errors(strApifunction + " : " + ex.getMessage())
                             }
                             //finally if (cs != null) cs.close()
                           }
@@ -5502,14 +5539,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again." //+ strBatchNo + " c"
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again." //+ strBatchNo + " d"
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
 
                         }
@@ -5543,16 +5580,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -5562,31 +5596,24 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
-                  }
-                  finally{
-
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
-                finally
-                {
-                  // your scala code here, such as to close a database connection
-                }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
               }
@@ -5594,7 +5621,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -5618,16 +5645,12 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
-      finally
-      {
-        // your scala code here, such as to close a database connection
-      }
       /*
       //implicit val requeststatusWrites = Json.writes[requeststatus]
       implicit val CMSDeclarations_ResponseWrites = Json.writes[CMSDeclarations_Response]
@@ -5646,15 +5669,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myCMSDeclarations_Response)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       //val jsonResponse = Json.toJson(myCMSDeclarations_Response)
@@ -5729,7 +5752,7 @@ class EchannelsEngine @Inject()
           strRequest = "Invalid Request Data"
         }
 
-        Log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + strRequest + " , header - " + strRequestHeader + " , remoteAddress - " + request.remoteAddress)
 
         if (isDataFound == true && isAuthTokenFound == true){
 
@@ -5738,7 +5761,7 @@ class EchannelsEngine @Inject()
             var myByteAuthToken = Base64.getDecoder.decode(strAuthToken)
             var myAuthToken : String = new String(myByteAuthToken, StandardCharsets.UTF_8)
 
-            Log_data(strApifunction + " : myAuthToken - " + "**********" + " , strAuthToken - " + strAuthToken)
+            log_data(strApifunction + " : myAuthToken - " + "**********" + " , strAuthToken - " + strAuthToken)
 
             if (myAuthToken != null){
               myAuthToken = myAuthToken.trim
@@ -5774,10 +5797,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           try{
@@ -5806,10 +5829,10 @@ class EchannelsEngine @Inject()
             {
               case ex: Exception =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + ex.getMessage())
+                log_errors(strApifunction + " : " + ex.getMessage())
               case tr: Throwable =>
                 isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                Log_errors(strApifunction + " : " + tr.getMessage())
+                log_errors(strApifunction + " : " + tr.getMessage())
             }
 
           if (isCredentialsFound == true && responseCode == 0){
@@ -5916,9 +5939,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
 
                       /* Lets set var isValidInputData to true if valid data is received from CMS */
@@ -5933,9 +5956,9 @@ class EchannelsEngine @Inject()
                       }
                       catch {
                         case io: Throwable =>
-                          Log_errors(strApifunction + " : " + io.getMessage())
+                          log_errors(strApifunction + " : " + io.getMessage())
                         case ex: Exception =>
-                          Log_errors(strApifunction + " : " + ex.getMessage())
+                          log_errors(strApifunction + " : " + ex.getMessage())
                       }
                     })
 
@@ -5967,14 +5990,14 @@ class EchannelsEngine @Inject()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(io.printStackTrace())
                                 entryID = 2
-                                Log_errors(strApifunction + " : " + io.getMessage())
+                                log_errors(strApifunction + " : " + io.getMessage())
                               //strErrorMsg = io.toString
                               case ex: Exception =>
                                 //ex.printStackTrace()
                                 responseMessage = "Error occured during processing, please try again."
                                 //println(ex.printStackTrace())
                                 entryID = 3
-                                Log_errors(strApifunction + " : " + ex.getMessage())
+                                log_errors(strApifunction + " : " + ex.getMessage())
                             }
                             //finally if (cs != null) cs.close()
                           }
@@ -5984,14 +6007,14 @@ class EchannelsEngine @Inject()
                               responseMessage = "Error occured during processing, please try again."
                               //println(io.printStackTrace())
                               entryID = 2
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             //strErrorMsg = io.toString
                             case ex: Exception =>
                               //ex.printStackTrace()
                               responseMessage = "Error occured during processing, please try again."
                               //println(ex.printStackTrace())
                               entryID = 3
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
                         }
                       }
@@ -6025,16 +6048,13 @@ class EchannelsEngine @Inject()
                         responseMessage = "Error occured during processing, please try again."
                         //println(io.printStackTrace())
                         entryID = 2
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
                         //ex.printStackTrace()
                         responseMessage = "Error occured during processing, please try again."
                         //println(ex.printStackTrace())
                         entryID = 3
-                        Log_errors(strApifunction + " : " + ex.getMessage())
-                    }
-                    finally{
-
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                   }
@@ -6044,31 +6064,24 @@ class EchannelsEngine @Inject()
                       responseMessage = "Error occured during processing, please try again."
                       //println(io.printStackTrace())
                       entryID = 2
-                      Log_errors(strApifunction + " : " + io.getMessage())
+                      log_errors(strApifunction + " : " + io.getMessage())
                     case ex: Exception =>
                       //ex.printStackTrace()
                       responseMessage = "Error occured during processing, please try again."
                       //println(ex.printStackTrace())
                       entryID = 3
-                      Log_errors(strApifunction + " : " + ex.getMessage())
-                  }
-                  finally{
-
+                      log_errors(strApifunction + " : " + ex.getMessage())
                   }
                 }
                 catch
                   {
                     case ex: Exception =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + ex.getMessage())
+                      log_errors(strApifunction + " : " + ex.getMessage())
                     case tr: Throwable =>
                       isProcessed = false//strname = "no data"//println("Got some other kind of exception")
-                      Log_errors(strApifunction + " : " + tr.getMessage())
+                      log_errors(strApifunction + " : " + tr.getMessage())
                   }
-                finally
-                {
-                  // your scala code here, such as to close a database connection
-                }
                 //strdetail = "Title - " + myIndividualCustomerinfo.Title + " Initials - " +  myIndividualCustomerinfo.Initials + " First_Name - "  + myIndividualCustomerinfo.Gender
                 //myconsumer = myIndividualCustomerinfo
               }
@@ -6076,7 +6089,7 @@ class EchannelsEngine @Inject()
                 // do something
                 isProcessed = false
                 responseMessage = "Error occured when unpacking Json values" //+ myjson.toString()
-                Log_errors(strApifunction + " : " + e.toString())
+                log_errors(strApifunction + " : " + e.toString())
               }
             }
           }
@@ -6100,15 +6113,12 @@ class EchannelsEngine @Inject()
           case ex: Exception =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case tr: Throwable =>
             isProcessed = false//strname = "no data"//println("Got some other kind of exception")
             responseMessage = "Error occured during processing, please try again."
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
-      finally
-      {
-      }
 
       implicit val MpesaTransactionStatus_BatchWrites = Json.writes[MpesaTransactionStatus_Batch]
       implicit val MpesaTransactionStatus_BatchDataWrites = Json.writes[MpesaTransactionStatus_BatchData]
@@ -6123,15 +6133,15 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMpesaTransactionStatus_BatchResponse)
 
       try{
-        Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
       }
       catch{
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage())
+          log_errors(strApifunction + " : " + ex.getMessage())
         case io: IOException =>
-          Log_errors(strApifunction + " : " + io.getMessage())
+          log_errors(strApifunction + " : " + io.getMessage())
         case tr: Throwable =>
-          Log_errors(strApifunction + " : " + tr.getMessage())
+          log_errors(strApifunction + " : " + tr.getMessage())
       }
 
       val r: Result = Ok(jsonResponse)
@@ -6321,11 +6331,11 @@ class EchannelsEngine @Inject()
               }
               catch{
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage())
+                  log_errors(strApifunction + " : " + ex.getMessage())
                 case io: IOException =>
-                  Log_errors(strApifunction + " : " + io.getMessage())
+                  log_errors(strApifunction + " : " + io.getMessage())
                 case tr: Throwable =>
-                  Log_errors(strApifunction + " : " + tr.getMessage())
+                  log_errors(strApifunction + " : " + tr.getMessage())
               }
 
               try{
@@ -6403,31 +6413,31 @@ class EchannelsEngine @Inject()
               }
               catch{
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage())
+                  log_errors(strApifunction + " : " + ex.getMessage())
                 case io: IOException =>
-                  Log_errors(strApifunction + " : " + io.getMessage())
+                  log_errors(strApifunction + " : " + io.getMessage())
                 case tr: Throwable =>
-                  Log_errors(strApifunction + " : " + tr.getMessage())
+                  log_errors(strApifunction + " : " + tr.getMessage())
               }
             }
           }
 
         }catch {
           case ex: Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage())
+            log_errors(strApifunction + " : " + ex.getMessage())
           case io: IOException =>
-            Log_errors(strApifunction + " : " + io.getMessage())
+            log_errors(strApifunction + " : " + io.getMessage())
           case tr: Throwable =>
-            Log_errors(strApifunction + " : " + tr.getMessage())
+            log_errors(strApifunction + " : " + tr.getMessage())
         }
       }
     }catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
       case io: IOException =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case tr: Throwable =>
-        Log_errors(strApifunction + " : " + tr.getMessage())
+        log_errors(strApifunction + " : " + tr.getMessage())
     }
     //return responseCode
     val myOutput = ResultOutput_Balances_Cbs(isSuccessful, myEe_Db, myEr_Db, myAvc_Db, myTotal_Db, myEe_Dc, myEr_Dc,  myAvc_Dc, myTotal_Dc)
@@ -6531,9 +6541,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     try{
@@ -6546,16 +6556,16 @@ class EchannelsEngine @Inject()
       }
 
       if (strApiURL.trim.length == 0){
-        Log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
+        log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
         return
       }
 
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -6592,7 +6602,7 @@ class EchannelsEngine @Inject()
         isValidData = true
       }
       else{
-        Log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
+        log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
         return
       }
       
@@ -6626,7 +6636,7 @@ class EchannelsEngine @Inject()
           val jsonResponse = Json.toJson(myMemberProjectionBenefits_Request)
           myjsonData = jsonResponse.toString()
 
-          Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+          log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
         }
         catch
           {
@@ -6844,9 +6854,9 @@ class EchannelsEngine @Inject()
                         }
                         catch {
                           case io: Throwable =>
-                            Log_errors(strApifunction + " : " + io.getMessage())
+                            log_errors(strApifunction + " : " + io.getMessage())
                           case ex: Exception =>
-                            Log_errors(strApifunction + " : " + ex.getMessage())
+                            log_errors(strApifunction + " : " + ex.getMessage())
                         }
 
                         //if (myResultCbsMessage_BatchData.get.projectionbenefitsdata != None) {
@@ -7249,7 +7259,7 @@ class EchannelsEngine @Inject()
                         ", myNetMonthlyPension - " + myNetMonthlyPension + ", myCommutedLumpsum - " + myCommutedLumpsum + ", myTaxFreeLumpsum - " + myTaxFreeLumpsum +
                         ", myTaxableAmount - " + myTaxableAmount + ", myWitholdingTax - " + myWitholdingTax + ", myLiability - " + myLiability  +
                         ", myLumpsumPayable - " + myLumpsumPayable
-                        Log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
+                        log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
 
                         isDataExists = true
 
@@ -7316,9 +7326,9 @@ class EchannelsEngine @Inject()
                           }
                           catch {
                             case io: Throwable =>
-                              Log_errors(strApifunction + " : " + io.getMessage())
+                              log_errors(strApifunction + " : " + io.getMessage())
                             case ex: Exception =>
-                              Log_errors(strApifunction + " : " + ex.getMessage())
+                              log_errors(strApifunction + " : " + ex.getMessage())
                           }
 
                           val f = Future {sendProjectionBenefitsResponseEchannel(myresponse_MemberProjectionBenefitsData, myTxnID)}
@@ -7367,7 +7377,7 @@ class EchannelsEngine @Inject()
                         }
 
                         val strMessage: String = "member_no - " + myMember_No + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                        Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
+                        log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
 
                         var strCalc_date: String = ""
                         var strExit_date: String = ""
@@ -7455,9 +7465,9 @@ class EchannelsEngine @Inject()
                         }
                         catch {
                           case io: Throwable =>
-                            Log_errors(strApifunction + " : " + io.getMessage())
+                            log_errors(strApifunction + " : " + io.getMessage())
                           case ex: Exception =>
-                            Log_errors(strApifunction + " : " + ex.getMessage())
+                            log_errors(strApifunction + " : " + ex.getMessage())
                         }
 
                         val ftr = Future {sendProjectionBenefitsResponseEchannel(myresponse_MemberProjectionBenefitsData, myTxnID)}
@@ -7465,9 +7475,9 @@ class EchannelsEngine @Inject()
                       catch
                         {
                           case ex: Exception =>
-                            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                           case t: Throwable =>
-                            Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                            log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                         }
                     }
                   }
@@ -7514,7 +7524,7 @@ class EchannelsEngine @Inject()
                     }
 
                     val strMessage: String = "member_no - " + myMember_No + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                    Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
+                    log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
 
                     var strCalc_date: String = ""
                     var strExit_date: String = ""
@@ -7602,9 +7612,9 @@ class EchannelsEngine @Inject()
                     }
                     catch {
                       case io: Throwable =>
-                        Log_errors(strApifunction + " : " + io.getMessage())
+                        log_errors(strApifunction + " : " + io.getMessage())
                       case ex: Exception =>
-                        Log_errors(strApifunction + " : " + ex.getMessage())
+                        log_errors(strApifunction + " : " + ex.getMessage())
                     }
 
                     val ftr = Future {sendProjectionBenefitsResponseEchannel(myresponse_MemberProjectionBenefitsData, myTxnID)}
@@ -7612,9 +7622,9 @@ class EchannelsEngine @Inject()
                   catch
                     {
                       case ex: Exception =>
-                        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                       case t: Throwable =>
-                        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                     }
                 }
               }
@@ -7626,7 +7636,7 @@ class EchannelsEngine @Inject()
               try {
 
                 //Log_errors(strApifunction + " : " + f.getMessage + " - ex exception error occured.")
-                Log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
+                log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
 
                 //var myTxnID : java.math.BigDecimal = new java.math.BigDecimal(0)
                 var start_time_DB : String  = ""
@@ -7747,9 +7757,9 @@ class EchannelsEngine @Inject()
                 }
                 catch {
                   case io: Throwable =>
-                    Log_errors(strApifunction + " : " + io.getMessage())
+                    log_errors(strApifunction + " : " + io.getMessage())
                   case ex: Exception =>
-                    Log_errors(strApifunction + " : " + ex.getMessage())
+                    log_errors(strApifunction + " : " + ex.getMessage())
                 }
 
                 val ftr = Future {sendProjectionBenefitsResponseEchannel(myresponse_MemberProjectionBenefitsData, myTxnID)}
@@ -7757,9 +7767,9 @@ class EchannelsEngine @Inject()
               catch
                 {
                   case ex: Exception =>
-                    Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                    log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                   case t: Throwable =>
-                    Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                    log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                 }
           }
 
@@ -7769,10 +7779,10 @@ class EchannelsEngine @Inject()
       {
         case ex: Exception =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
         case t: Throwable =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+          log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
       }
 
   }
@@ -7790,16 +7800,16 @@ class EchannelsEngine @Inject()
       }
 
       if (strApiURL.trim.length == 0){
-        Log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
+        log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
         return
       }
 
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri : Uri = strApiURL //"http://172.16.109.253:8088/Xi/api/getprovisionalstatement/283632"
@@ -7815,7 +7825,7 @@ class EchannelsEngine @Inject()
         isValidData = true
       }
       else{
-        Log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
+        log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
         return
       }
 
@@ -7858,12 +7868,12 @@ class EchannelsEngine @Inject()
         }
 
         if (strUserName.trim.length == 0){
-          Log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strUserName + " , application error occured.")
+          log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strUserName + " , application error occured.")
           return
         }
 
         if (strPassWord.trim.length == 0){
-          Log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strPassWord + " , application error occured.")
+          log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strPassWord + " , application error occured.")
           return
         }
 
@@ -8166,7 +8176,7 @@ class EchannelsEngine @Inject()
                                 ", myContrEe - " + myContrEe + ", myContrEr - " + myContrEr + ", myContrAvc - " + myContrAvc +
                                 ", myGrandTotal - " + myGrandTotal + ", myEe - " + myEe + ", myEr - " + myEr +
                                 ", myAvc - " + myAvc + ", memberNo - " + memberNo + ", myMemberId - " + myMemberId
-                              Log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
+                              log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
                               isDataExists = true
 
                             })
@@ -8293,7 +8303,7 @@ class EchannelsEngine @Inject()
                         }
 
                         val strMessage: String = "member_no - " + myMember_No + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                        Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
+                        log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
 
                         val strResponseData: String = "No Response Data received"
 
@@ -8306,16 +8316,16 @@ class EchannelsEngine @Inject()
                         val strStatusMessage_Cbs: String = "Failure occured when sending the request to API"
 
                         val strMessage1: String = "member_no - " + myMember_No + ", member_Id - " + myMemberId + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                        Log_data(strApifunction + " : " + strResponseData + " - myData.value.getOrElse(None) != None. error occured.")
+                        log_data(strApifunction + " : " + strResponseData + " - myData.value.getOrElse(None) != None. error occured.")
 
 
                       }
                       catch
                         {
                           case ex: Exception =>
-                            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                           case t: Throwable =>
-                            Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                            log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                         }
                     }
                   }
@@ -8362,7 +8372,7 @@ class EchannelsEngine @Inject()
                     }
 
                     val strMessage: String = "member_no - " + myMember_No + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                    Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
+                    log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
 
                     val strResponseData: String = "No Response Data received"
 
@@ -8375,15 +8385,15 @@ class EchannelsEngine @Inject()
                     val strStatusMessage_Cbs: String = "Failure occured when sending the request to API"
 
                     val strMessage1: String = "member_no - " + myMember_No + ", member_Id - " + myMemberId + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                    Log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
+                    log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
 
                   }
                   catch
                     {
                       case ex: Exception =>
-                        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                       case t: Throwable =>
-                        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                     }
                 }
               }
@@ -8395,7 +8405,7 @@ class EchannelsEngine @Inject()
               try {
 
                 //Log_errors(strApifunction + " : " + f.getMessage + " - ex exception error occured.")
-                Log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
+                log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
 
                 //var myTxnID : java.math.BigDecimal = new java.math.BigDecimal(0)
                 var start_time_DB : String  = ""
@@ -8441,14 +8451,14 @@ class EchannelsEngine @Inject()
                 val strStatusMessage_Cbs: String = "Failure occured when sending the request to API"
 
                 val strMessage1: String = "member_no - " + myMember_No + ", member_Id - " + myMemberId + ", status - " + myStatusCode_Cbs + ", status message - " + strStatusMessage_Cbs
-                Log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
+                log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
               }
               catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
 
@@ -8458,14 +8468,11 @@ class EchannelsEngine @Inject()
       {
         case ex: Exception =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
         case t: Throwable =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+          log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
       }
-    finally
-    {
-    }
 
   }
   def getProvisionalStatementRequestsCbs(myMemberNo : Int, myMemberId : Int): Result_CbsProvisionalStatement = {
@@ -8487,7 +8494,7 @@ class EchannelsEngine @Inject()
       }
 
       if (strApiURL.trim.length == 0){
-        Log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
+        log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
         val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
         return myOutput
       }
@@ -8495,9 +8502,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri : Uri = strApiURL //"http://172.16.109.253:8088/Xi/api/getprovisionalstatement/283632"
@@ -8513,7 +8520,7 @@ class EchannelsEngine @Inject()
         isValidData = true
       }
       else{
-        Log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
+        log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
         val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
         return myOutput
       }
@@ -8557,13 +8564,13 @@ class EchannelsEngine @Inject()
         }
 
         if (strUserName.trim.length == 0){
-          Log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strUserName + " , application error occured.")
+          log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strUserName + " , application error occured.")
           val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
           return myOutput
         }
 
         if (strPassWord.trim.length == 0){
-          Log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strPassWord + " , application error occured.")
+          log_errors(strApifunction + " : Failure in fetching  Api UserName - " + strPassWord + " , application error occured.")
           val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
           return myOutput
         }
@@ -8865,7 +8872,7 @@ class EchannelsEngine @Inject()
                           ", myContrEe - " + myContrEe + ", myContrEr - " + myContrEr + ", myContrAvc - " + myContrAvc +
                           ", myGrandTotal - " + myGrandTotal + ", myEe - " + myEe + ", myEr - " + myEr +
                           ", myAvc - " + myAvc + ", memberNo - " + myMemberNo + ", myMemberId - " + myMemberId
-                        Log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
+                        log_data(strApifunction + " : " + strMessage + " - ResponseMessage." + strApifunction)
                         isDataExists = true
 
                       })
@@ -8916,7 +8923,7 @@ class EchannelsEngine @Inject()
                   }
                   */
                   val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                  Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
+                  log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
 
                   val strResponseData: String = "No Response Data received"
 
@@ -8929,16 +8936,16 @@ class EchannelsEngine @Inject()
                   val strStatusMessage_Cbs: String = "Failure occured when sending the request to API"
 
                   val strMessage1: String = "member_no - " + myMemberNo + ", member_Id - " + myMemberId + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-                  Log_data(strApifunction + " : " + strResponseData + " - myData.value.getOrElse(None) != None. error occured.")
+                  log_data(strApifunction + " : " + strResponseData + " - myData.value.getOrElse(None) != None. error occured.")
 
 
                 }
                 catch
                   {
                     case ex: Exception =>
-                      Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                      log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                     case t: Throwable =>
-                      Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                      log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                   }
               }
             }
@@ -8987,7 +8994,7 @@ class EchannelsEngine @Inject()
               */
 
               val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-              Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
+              log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
 
               val strResponseData: String = "No Response Data received"
 
@@ -9000,20 +9007,20 @@ class EchannelsEngine @Inject()
               val strStatusMessage_Cbs: String = "Failure occured when sending the request to API"
 
               val strMessage1: String = "member_no - " + myMemberNo + ", member_Id - " + myMemberId + ", status - " + myStatusCode + ", status message - " + strStatusMessage
-              Log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
+              log_data(strApifunction + " : " + strResponseData + " - http != 200 error occured. error occured.")
 
             }
             catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
         }
         else{
-          Log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
+          log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
         }
         /*
         responseFuture
@@ -9548,18 +9555,16 @@ class EchannelsEngine @Inject()
       {
         case ex: Exception =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
         case t: Throwable =>
           isSuccessful = false
-          Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+          log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
       }
-    finally
-    {
-    }
 
     val myOutput = Result_CbsProvisionalStatement(isRequestSuccessful, myEe, myEr, myAvc, myTotal)
     return myOutput
   }
+  /*
   def validateMemberDetailsRequestsCbs(myMemberDetailsValidate_BatchRequest: MemberDetailsValidate_BatchRequest): Seq[MemberDetailsValidateResponse_Batch] = {
     val strApifunction: String = "validateMemberDetailsRequestsCbs"
     var strApiURL: String = ""
@@ -9590,9 +9595,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -9621,7 +9626,7 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsValidate_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch
@@ -9659,9 +9664,9 @@ class EchannelsEngine @Inject()
     catch
     {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     try {
@@ -9752,7 +9757,7 @@ class EchannelsEngine @Inject()
                   }
 
                   //Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData)
-                  Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
 
                   //var start_time_DB: String = ""
                   //var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
@@ -9865,7 +9870,7 @@ class EchannelsEngine @Inject()
                   //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
                   val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
                   //Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured.")
-                  Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
                   /*
                   val strResponseData: String = "No Response Data received"
 
@@ -9885,9 +9890,9 @@ class EchannelsEngine @Inject()
                 catch
                   {
                     case ex: Exception =>
-                      Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                      log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                     case t: Throwable =>
-                      Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                      log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                   }
               }
             }
@@ -9905,7 +9910,7 @@ class EchannelsEngine @Inject()
               //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
               val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
               //Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured.")
-              Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+              log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
               /*
               val strResponseData: String = "No Response Data received"
 
@@ -9926,14 +9931,14 @@ class EchannelsEngine @Inject()
             catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
         }
         else{
-          Log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
+          log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
         }
       }
     }
@@ -9941,14 +9946,15 @@ class EchannelsEngine @Inject()
     {
       case ex: Exception =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
       case t: Throwable =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
     }
 
     myMemberDetailsValidateResponse_BatchData
   }
+  */
   def validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest: MemberDetailsValidate_BatchRequest): Future[HttpResponse] = {
     val strApifunction: String = "validateMemberDetailsRequestsCbs_test"
     var strApiURL: String = ""
@@ -9971,9 +9977,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -9989,14 +9995,14 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsValidate_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
@@ -10029,14 +10035,13 @@ class EchannelsEngine @Inject()
 
         strResponseData = myDataResponse.toString()
 
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         
-        if (myDataResponse.memberdata != null) {
+        if (myDataResponse.memberdata.getOrElse(None) != None) {
 
-          myCount = myDataResponse.memberdata.length
-
-          val myCbsMessageData = myDataResponse.memberdata
+          val myCbsMessageData = myDataResponse.memberdata.get
           if (myCbsMessageData != null) {
+            myCount = myCbsMessageData.length
             myCbsMessageData.foreach(myCbsData => {
 
               try{
@@ -10111,9 +10116,9 @@ class EchannelsEngine @Inject()
               }
               catch {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
 
             })
@@ -10122,18 +10127,19 @@ class EchannelsEngine @Inject()
       }
       else{
         strCode = "myTransactionResponse.get != None"
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
       }
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     myMemberDetailsValidateResponse_BatchData
   }
+  /*
   def getMemberDetailsGeneralRequestsCbs(myMemberDetailsGeneral_BatchRequest: MemberDetailsGeneral_BatchRequest): Seq[MemberDetailsGeneralResponse_BatchData] = {
     val strApifunction: String = "getMemberDetailsGeneralRequestsCbs"
     var strApiURL: String = ""
@@ -10186,9 +10192,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -10217,7 +10223,7 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsGeneral_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch
@@ -10355,7 +10361,7 @@ class EchannelsEngine @Inject()
                   }
 
                   //Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData)
-                  Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
 
                   //var start_time_DB: String = ""
                   //var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
@@ -10930,7 +10936,7 @@ class EchannelsEngine @Inject()
                   
                   //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
                   val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-                  Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
                   /*
                   val strResponseData: String = "No Response Data received"
 
@@ -10950,9 +10956,9 @@ class EchannelsEngine @Inject()
                 catch
                   {
                     case ex: Exception =>
-                      Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                      log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                     case t: Throwable =>
-                      Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                      log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                   }
               }
             }
@@ -10969,7 +10975,7 @@ class EchannelsEngine @Inject()
               
               //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
               val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-              Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+              log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
               /*
               val strResponseData: String = "No Response Data received"
 
@@ -10990,14 +10996,14 @@ class EchannelsEngine @Inject()
             catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
         }
         else{
-          Log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
+          log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
         }
       }
     }
@@ -11005,14 +11011,15 @@ class EchannelsEngine @Inject()
     {
       case ex: Exception =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
       case t: Throwable =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
     }
 
     myMemberDetailsGeneralResponse_BatchData
   }
+  */
   def getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest: MemberDetailsGeneral_BatchRequest): Future[HttpResponse] = {
     val strApifunction: String = "getMemberDetailsGeneralRequestsCbs_test"
     var strApiURL: String = ""
@@ -11035,9 +11042,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -11053,14 +11060,14 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberDetailsGeneral_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
@@ -11115,14 +11122,13 @@ class EchannelsEngine @Inject()
 
         strResponseData = myDataResponse.toString()
 
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         
-        if (myDataResponse.memberdata != null) {
+        if (myDataResponse.memberdata.getOrElse(None) != None) {
 
-          myCount = myDataResponse.memberdata.length
-
-          val myCbsMessageData = myDataResponse.memberdata
+          val myCbsMessageData = myDataResponse.memberdata.get
           if (myCbsMessageData != null) {
+            myCount = myCbsMessageData.length
             myCbsMessageData.foreach(myCbsData => {
 
               try{
@@ -11647,29 +11653,38 @@ class EchannelsEngine @Inject()
               }
               catch {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
 
             })
           }
+          else{
+            strCode = "myCbsMessageData != null"
+            log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+          }
+        }
+        else{
+          strCode = "myDataResponse.memberdata.getOrElse(None) != None"
+          log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         }
       }
       else{
         strCode = "myTransactionResponse.get != None"
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
       }
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     myMemberDetailsGeneralResponse_BatchData
   }
+  /*
   def getMemberBalanceDetailsRequestsCbs(myMemberBalanceDetails_BatchRequest: MemberBalanceDetails_BatchRequest): Seq[MemberBalanceDetailsResponse_Batch] = {
     val strApifunction: String = "getMemberBalanceDetailsRequestsCbs"
     var strApiURL: String = ""
@@ -11722,9 +11737,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -11753,7 +11768,7 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberBalanceDetails_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch
@@ -11791,9 +11806,9 @@ class EchannelsEngine @Inject()
     catch
     {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     try {
@@ -11885,7 +11900,7 @@ class EchannelsEngine @Inject()
                     strResponseData = myResultCbsMessage_BatchData.toString
                   }
 
-                  Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
 
                   //var start_time_DB: String = ""
                   //var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
@@ -12235,7 +12250,7 @@ class EchannelsEngine @Inject()
                   
                   //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
                   val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-                  Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
                   /*
                   val strResponseData: String = "No Response Data received"
 
@@ -12255,9 +12270,9 @@ class EchannelsEngine @Inject()
                 catch
                   {
                     case ex: Exception =>
-                      Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                      log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                     case t: Throwable =>
-                      Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                      log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                   }
               }
             }
@@ -12274,7 +12289,7 @@ class EchannelsEngine @Inject()
               
               //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
               val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-              Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+              log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
               /*
               val strResponseData: String = "No Response Data received"
 
@@ -12295,14 +12310,14 @@ class EchannelsEngine @Inject()
             catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
         }
         else{
-          Log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
+          log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
         }
       }
     }
@@ -12310,14 +12325,15 @@ class EchannelsEngine @Inject()
     {
       case ex: Exception =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
       case t: Throwable =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
     }
 
     myMemberBalanceDetailsResponse_BatchData
   }
+  */
   def getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest: MemberBalanceDetails_BatchRequest): Future[HttpResponse] = {
     val strApifunction: String = "getMemberBalanceDetailsRequestsCbs_test"
     var strApiURL: String = ""
@@ -12340,9 +12356,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -12358,14 +12374,14 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberBalanceDetails_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
@@ -12421,14 +12437,13 @@ class EchannelsEngine @Inject()
 
         strResponseData = myDataResponse.toString()
 
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         
-        if (myDataResponse.memberdata != null) {
+        if (myDataResponse.memberdata.getOrElse(None) != None) {
 
-          myCount = myDataResponse.memberdata.length
-
-          val myCbsMessageData = myDataResponse.memberdata
+          val myCbsMessageData = myDataResponse.memberdata.get
           if (myCbsMessageData != null) {
+            myCount = myCbsMessageData.length
             myCbsMessageData.foreach(myCbsData => {
 
               try{
@@ -12722,9 +12737,9 @@ class EchannelsEngine @Inject()
               }
               catch {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
 
               //lets create balancedata
@@ -12732,22 +12747,31 @@ class EchannelsEngine @Inject()
               myMemberBalanceDetailsResponse_BatchData  = myMemberBalanceDetailsResponse_BatchData :+ myMemberBalanceDetailsResponse_Batch
             })
           }
+          else{
+            strCode = "myCbsMessageData != null"
+            log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+          }
+        }
+        else{
+          strCode = "myDataResponse.memberdata.getOrElse(None) != None"
+          log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         }
       }
       else{
         strCode = "myTransactionResponse.get != None"
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
       }
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     myMemberBalanceDetailsResponse_BatchData
   }
+  /*
   def getMemberContributionsDetailsRequestsCbs(myMemberContributionsDetails_BatchRequest: MemberContributionsDetails_BatchRequest): Seq[MemberContributionsDetailsResponse_Batch] = {
     val strApifunction: String = "getMemberContributionsDetailsRequestsCbs"
     var strApiURL: String = ""
@@ -12792,9 +12816,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -12823,7 +12847,7 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberContributionsDetails_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch
@@ -12861,9 +12885,9 @@ class EchannelsEngine @Inject()
     catch
     {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     try {
@@ -12954,7 +12978,7 @@ class EchannelsEngine @Inject()
                     strResponseData = myResultCbsMessage_BatchData.toString
                   }
 
-                  Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
 
                   //var start_time_DB: String = ""
                   //var stop_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
@@ -13249,7 +13273,7 @@ class EchannelsEngine @Inject()
                   
                   //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
                   val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-                  Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+                  log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
                   /*
                   val strResponseData: String = "No Response Data received"
 
@@ -13269,9 +13293,9 @@ class EchannelsEngine @Inject()
                 catch
                   {
                     case ex: Exception =>
-                      Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                      log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                     case t: Throwable =>
-                      Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                      log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                   }
               }
             }
@@ -13288,7 +13312,7 @@ class EchannelsEngine @Inject()
               
               //val strMessage: String = "member_no - " + myMemberNo + ", status - " + myStatusCode + ", status message - " + strStatusMessage
               val strMessage: String = "status - " + myStatusCode + ", status message - " + strStatusMessage
-              Log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+              log_errors(strApifunction + " : " + strMessage + " - http != 200 error occured. error occured." + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
               /*
               val strResponseData: String = "No Response Data received"
 
@@ -13309,14 +13333,14 @@ class EchannelsEngine @Inject()
             catch
               {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
           }
         }
         else{
-          Log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
+          log_errors(strApifunction + " : " + " - res.status != null && res.status != None. error occured.")
         }
       }
     }
@@ -13324,14 +13348,15 @@ class EchannelsEngine @Inject()
     {
       case ex: Exception =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
       case t: Throwable =>
         isSuccessful = false
-        Log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + "t exception error occured.")
     }
 
     myMemberContributionsDetailsResponse_BatchData
   }
+  */
   def getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest: MemberContributionsDetails_BatchRequest): Future[HttpResponse] = {
     val strApifunction: String = "getMemberContributionsDetailsRequestsCbs_test"
     var strApiURL: String = ""
@@ -13354,9 +13379,9 @@ class EchannelsEngine @Inject()
     }
     catch {
       case io: Throwable =>
-        Log_errors(strApifunction + " : " + io.getMessage())
+        log_errors(strApifunction + " : " + io.getMessage())
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage())
+        log_errors(strApifunction + " : " + ex.getMessage())
     }
 
     val myuri: Uri = strApiURL
@@ -13372,14 +13397,14 @@ class EchannelsEngine @Inject()
       val jsonResponse = Json.toJson(myMemberContributionsDetails_BatchRequest)
       myjsonData = jsonResponse.toString()
 
-      Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
+      log_data(strApifunction + " : " + "RequestMessage - " + myjsonData)
 
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
@@ -13390,7 +13415,7 @@ class EchannelsEngine @Inject()
   }
   def unpackMemberContributionsDetailsCbs(myDataResponse: CbsMessage_MemberContributionsDetails_Batch) : Seq[MemberContributionsDetailsResponse_Batch] = {
     val start_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
-    val strApifunction: String = "getMemberContributionsDetailsRequestsCbs"
+    val strApifunction: String = "unpackMemberContributionsDetailsCbs"
     var strApiURL: String = ""
     var isRequestSuccessful: Boolean = false
     var memberNo: Int = 0
@@ -13426,14 +13451,20 @@ class EchannelsEngine @Inject()
 
         strResponseData = myDataResponse.toString()
 
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
-        
-        if (myDataResponse.memberdata != null) {
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , ResponseMessage - " + strResponseData + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        //if (myDataResponse.memberdata != null) {
+        if (myDataResponse.memberdata.getOrElse(None) != None) {
 
-          myCount = myDataResponse.memberdata.length
+          //myCount = myDataResponse.memberdata.length
+          //val myMemberData = myDataResponse.memberdata.get
+          //myCount = myMemberData.length
 
-          val myCbsMessageData = myDataResponse.memberdata
+          //val myCbsMessageData = myDataResponse.memberdata
+          val myCbsMessageData = myDataResponse.memberdata.get
+          //val myCbsMessageData = myDataResponse.memberdata.getOrElse(None)
+          //if (myCbsMessageData != null) {
           if (myCbsMessageData != null) {
+            myCount = myCbsMessageData.length
             myCbsMessageData.foreach(myCbsData => {
 
               try{
@@ -13672,9 +13703,9 @@ class EchannelsEngine @Inject()
               }
               catch {
                 case ex: Exception =>
-                  Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                  log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                 case t: Throwable =>
-                  Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                  log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
               }
 
               //lets create contributionsdata
@@ -13682,18 +13713,26 @@ class EchannelsEngine @Inject()
               myMemberContributionsDetailsResponse_BatchData  = myMemberContributionsDetailsResponse_BatchData :+ myMemberContributionsDetailsResponse_Batch
             })
           }
+          else{
+            strCode = "myCbsMessageData != null"
+            log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+          }
+        }
+        else{
+          strCode = "myDataResponse.memberdata.getOrElse(None) != None"
+          log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
         }
       }
       else{
         strCode = "myTransactionResponse.get != None"
-        Log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
+        log_data(strApifunction + " : " + "RequestMessage - " + myjsonData + " , strCode - " + strCode + " , start_time - " + start_time_DB + " , stop_time - " + stop_time_DB)
       }
     }
     catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     myMemberContributionsDetailsResponse_BatchData
@@ -14063,12 +14102,12 @@ class EchannelsEngine @Inject()
       }
 
       if (strApiURL.trim.length == 0){
-        Log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
+        log_errors(strApifunction + " : Failure in fetching  Api URL - " + strApiURL + " , application error occured.")
       }
     }
     catch{
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
     }
 
     val myuri : Uri = strApiURL //Maintain in DB
@@ -14094,13 +14133,10 @@ class EchannelsEngine @Inject()
     catch
       {
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         case t: Throwable =>
-          Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+          log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
       }
-    finally
-    {
-    }
 
     try
     {
@@ -14229,7 +14265,7 @@ class EchannelsEngine @Inject()
                       }
 
                       val strMessage: String = "txnid - " + myTxnID + ", status - " + myStatusCode_Cbs + ", status message - " + strStatusMessage_Cbs
-                      Log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None error occured.")
+                      log_errors(strApifunction + " : " + strMessage + " - myData.value.getOrElse(None) != None error occured.")
 
                       val posted_to_Echannels: Boolean = false
                       val post_picked_Echannels: Boolean = false
@@ -14357,7 +14393,7 @@ class EchannelsEngine @Inject()
               //println("start 3: " + strApifunction + " " + f.getMessage)
               try {
 
-                Log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
+                log_errors(strApifunction + " : Failure - " + f.getMessage + " - ex exception error occured.")
 
                 var myTxnID : java.math.BigDecimal = new java.math.BigDecimal(0)
                 var strRequestData: String = ""
@@ -14403,9 +14439,9 @@ class EchannelsEngine @Inject()
               catch
                 {
                   case ex: Exception =>
-                    Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+                    log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
                   case t: Throwable =>
-                    Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+                    log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
                 }
 
           }
@@ -14414,15 +14450,10 @@ class EchannelsEngine @Inject()
     catch
       {
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         case t: Throwable =>
-          Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+          log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
       }
-    finally
-    {
-      // your scala code here, such as to close a database connection
-    }
-
   }
   def processUpdatePensionersVerification(sourceDataTable : SQLServerDataTable) : Unit = {
     val strApifunction : String = "processUpdatePensionersVerification"
@@ -14440,37 +14471,16 @@ class EchannelsEngine @Inject()
         }
       }catch {
         case ex: Exception =>
-          Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+          log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
         case t: Throwable =>
-          Log_errors(strApifunction + " : " + t.getMessage + "exception error occured.")
-      }finally {
-        /*
-        if (statement != null) {
-          statement.close()
-          statement = null
-        }
-        */
+          log_errors(strApifunction + " : " + t.getMessage + "exception error occured.")
       }
 
     }catch {
       case ex: Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + "exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + "exception error occured.")
-    }finally {
-      /*
-      if (conn != null) {
-          conn.close()
-          conn = null
-        }
-        */
-      /*
-      if (conn != null){
-        if (conn.isClosed != true){
-          conn.close()
-        }
-      }
-      */
+        log_errors(strApifunction + " : " + t.getMessage + "exception error occured.")
     }
     //}
     //return  myID
@@ -14496,19 +14506,17 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
           case t: Throwable =>
-            Log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
+            log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
         }
 
       }
     }catch {
       case ex : Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
-    }finally {
-
+        log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " MemberNo - " + myMemberNo.toString()  + " MemberId - " + myMemberId.toString())
     }
 
     return  myMemberId
@@ -14532,19 +14540,17 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " TxnID - " + myTxnID.toString())
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " TxnID - " + myTxnID.toString())
           case t: Throwable =>
-            Log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " TxnID - " + myTxnID.toString())
+            log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " TxnID - " + myTxnID.toString())
         }
 
       }
     }catch {
       case ex : Exception =>
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " TxnID - " + myTxnID.toString())
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " TxnID - " + myTxnID.toString())
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " TxnID - " + myTxnID.toString())
-    }finally {
-
+        log_errors(strApifunction + " : " + t.getMessage + " t exception error occured." + " TxnID - " + myTxnID.toString())
     }
 
     return  myTxnID
@@ -14593,9 +14599,9 @@ class EchannelsEngine @Inject()
     catch
       {
         case ex: Exception =>
-          Log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + ex.getMessage())
+          log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + ex.getMessage())
         case tr: Throwable =>
-          Log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + tr.getMessage())
+          log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + tr.getMessage())
       }
 
     isSuccessful
@@ -14620,7 +14626,7 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         }
       }
 
@@ -14628,14 +14634,13 @@ class EchannelsEngine @Inject()
       case io: IOException =>
         //io.printStackTrace()
         //strErrorMsg = io.toString
-        Log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
       case ex : Exception =>
         //ex.printStackTrace()
         //strErrorMsg = ex.toString
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
-    }finally {
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     return  strCBSProjectionBenefitsURL
@@ -14659,7 +14664,7 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         }
       }
 
@@ -14667,14 +14672,13 @@ class EchannelsEngine @Inject()
       case io: IOException =>
         //io.printStackTrace()
         //strErrorMsg = io.toString
-        Log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
       case ex : Exception =>
         //ex.printStackTrace()
         //strErrorMsg = ex.toString
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
-    }finally {
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
     return  strCBSProvisionalStatementURL
@@ -14697,7 +14701,7 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         }
 
       }
@@ -14706,16 +14710,14 @@ class EchannelsEngine @Inject()
       case io: IOException =>
         //io.printStackTrace()
         //strErrorMsg = io.toString
-        Log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
       case ex : Exception =>
         //ex.printStackTrace()
         //strErrorMsg = ex.toString
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
-    }finally {
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
-
 
     return  strEchannelsProjectionBenefitsURL
   }
@@ -14736,7 +14738,7 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         }
 
       }
@@ -14745,16 +14747,14 @@ class EchannelsEngine @Inject()
       case io: IOException =>
         //io.printStackTrace()
         //strErrorMsg = io.toString
-        Log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
       case ex : Exception =>
         //ex.printStackTrace()
         //strErrorMsg = ex.toString
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
-    }finally {
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
-
 
     return  strApiUserName
   }
@@ -14775,7 +14775,7 @@ class EchannelsEngine @Inject()
         }
         catch{
           case ex : Exception =>
-            Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
         }
 
       }
@@ -14784,16 +14784,14 @@ class EchannelsEngine @Inject()
       case io: IOException =>
         //io.printStackTrace()
         //strErrorMsg = io.toString
-        Log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
       case ex : Exception =>
         //ex.printStackTrace()
         //strErrorMsg = ex.toString
-        Log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
       case t: Throwable =>
-        Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
-    }finally {
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
-
 
     return  strApiPassword
   }
@@ -14812,7 +14810,7 @@ class EchannelsEngine @Inject()
         if (!request.body.asJson.isEmpty){
           strRequest = request.body.asJson.get.toString()
           //println("start 2 addAccountVerificationRequestEsbCbs: Request data - " + System.lineSeparator() + strRequest)
-          Log_data(strApifunction + " : " + ", Request - " + strRequest)
+          log_data(strApifunction + " : " + ", Request - " + strRequest)
         }
       }
       catch{
@@ -14833,7 +14831,7 @@ class EchannelsEngine @Inject()
 
       val jsonResponse = Json.toJson(myResponse)
 
-      Log_data(strApifunction + " : " + ", Request - " + strRequest + ", Response - " + jsonResponse)
+      log_data(strApifunction + " : " + ", Request - " + strRequest + ", Response - " + jsonResponse)
 
       val r: Result = Ok(jsonResponse)
       r
@@ -14845,89 +14843,62 @@ class EchannelsEngine @Inject()
     futureInt.map(i => Ok("Got result: " + i))
   }
   */
-  def Log_data(mydetail : String) : Unit = {
-    //var strpath_file2 : String = "C:\\Program Files\\Biometric_System\\mps1\\Logs.txt"
-    try{
-      var strdetail = ""//println(new java.util.Date)
-      val str_Date  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
-      //Lets create a new date-folder when date changes
-      if (strFileDate.equals(str_Date)== false){
-        //Initialise these two fields
-        /*
-        strpath_file = strApplication_path + "\\Logs"+ "\\Logs.txt"
-        strpath_file2 = strApplication_path + "\\Logs" + "\\Errors.txt"
-        var is_Successful : Boolean = create_Folderpaths
-        writer_data = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file,true)))
-        */
-        var is_Successful : Boolean = create_Folderpaths(strApplication_path)
-        strFileDate = str_Date
-      }
-      //var writer_data = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file2,true)))
-      //writer.println(strdetail)
-      //val requestDate : String =  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
-      val requestDate : String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
+  def log_data(mydetail : String) : Unit = {
+    Future {
+      try{
+        var strdetail = ""
+        val str_Date  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
+        //Lets create a new date-folder when date changes
+        if (strFileDate.equals(str_Date)== false){
+          var is_Successful : Boolean = create_Folderpaths(strApplication_path)
+          strFileDate = str_Date
+        }
 
-      //strdetail  =  mydetail + " - " + new java.util.Date
-      strdetail  =  mydetail + " - " + requestDate
-      writer_data.append(strdetail)
-      writer_data.append(System.lineSeparator())
-      writer_data.append("======================================================================")
-      writer_data.append(System.lineSeparator())
-      if (writer_data != null) {
-        //writer_data.close()
-        //writer_data = null
-        writer_data.flush()
+        val requestDate : String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
+
+        strdetail  =  mydetail + " - " + requestDate
+        writer_data.append(strdetail)
+        writer_data.append(System.lineSeparator())
+        writer_data.append("======================================================================")
+        writer_data.append(System.lineSeparator())
+        if (writer_data != null) {
+          writer_data.flush()
+        }
       }
-    }
-    catch {
-      case io: IOException =>
-        io.printStackTrace()
-      //strErrorMsg = io.toString
-      case ex : Exception =>
-        ex.printStackTrace()
-      //strErrorMsg = ex.toString
-    }
-    finally {
-    }
+      catch {
+        case io: IOException =>
+          io.printStackTrace()
+        case ex : Exception =>
+          ex.printStackTrace()
+      }
+    }(myExecutionContextFileWrite)
   }
-  def Log_errors(mydetail : String) : Unit = {
-    //, strpath_file2 : String
-    try{
-      var strdetail = ""//println(new java.util.Date)
-      val str_Date  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
-      //Lets create a new date-folder when date changes
-      if (strFileDate.equals(str_Date)== false){
-        //Initialise these two fields
-        /*
-        strpath_file = strApplication_path + "\\Logs"+ "\\Logs.txt"
-        strpath_file2 = strApplication_path + "\\Logs" + "\\Errors.txt"
-        var is_Successful : Boolean = create_Folderpaths
-        writer_errors = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file2,true)))
-        */
-        var is_Successful : Boolean = create_Folderpaths(strApplication_path)
-        strFileDate = str_Date
+  def log_errors(mydetail : String) : Unit = {
+    Future {
+      try{
+        var strdetail = ""//println(new java.util.Date)
+        val str_Date  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
+        //Lets create a new date-folder when date changes
+        if (strFileDate.equals(str_Date)== false){
+          var is_Successful : Boolean = create_Folderpaths(strApplication_path)
+          strFileDate = str_Date
+        }
+        strdetail  =  mydetail + " - " + new java.util.Date
+        writer_errors.append(strdetail)
+        writer_errors.append(System.lineSeparator())
+        writer_errors.append("======================================================================")
+        writer_errors.append(System.lineSeparator())
+        if (writer_errors != null) {
+          writer_errors.flush()
+        }
       }
-      //var writer_errors = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file2,true)))
-      //writer.println(strdetail)
-      strdetail  =  mydetail + " - " + new java.util.Date
-      writer_errors.append(strdetail)
-      writer_errors.append(System.lineSeparator())
-      writer_errors.append("======================================================================")
-      writer_errors.append(System.lineSeparator())
-      if (writer_errors != null) {
-        writer_errors.flush()
+      catch {
+        case io: IOException =>
+          io.printStackTrace()
+        case ex : Exception =>
+          ex.printStackTrace()
       }
-    }
-    catch {
-      case io: IOException =>
-        io.printStackTrace()
-      //strErrorMsg = io.toString
-      case ex : Exception =>
-        ex.printStackTrace()
-      //strErrorMsg = ex.toString
-    }
-    finally {
-    }
+    }(myExecutionContextFileWrite)
   }
   def create_Folderpaths(strApplication_path : String): Boolean = {
     var is_Successful : Boolean = false
@@ -14982,14 +14953,12 @@ class EchannelsEngine @Inject()
 
     }
     catch {
-      case io: IOException => Log_errors("create_Folderpaths : " + io.getMessage + "exception error occured")
+      case io: IOException => log_errors("create_Folderpaths : " + io.getMessage + "exception error occured")
       //io.printStackTrace()
-      case t: Throwable => Log_errors("create_Folderpaths : " + t.getMessage + "exception error occured")
+      case t: Throwable => log_errors("create_Folderpaths : " + t.getMessage + "exception error occured")
       //strErrorMsg = io.toString
-      case ex : Exception => Log_errors("create_Folderpaths : " + ex.getMessage + "exception error occured")
+      case ex : Exception => log_errors("create_Folderpaths : " + ex.getMessage + "exception error occured")
       //ex.printStackTrace()
-    }
-    finally {
     }
     return  is_Successful
   }
