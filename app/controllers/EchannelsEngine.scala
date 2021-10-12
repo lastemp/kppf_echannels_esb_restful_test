@@ -1828,10 +1828,13 @@ class EchannelsEngine @Inject()
       */  
       if (successfulEntry){
         val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
-      
+        /*
         val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
             responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])
-
+            */
+        val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
+            responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
+        
         //Anonymous function
         val procMemberBalanceDetails = (myDataResponse: CbsMessage_MemberBalanceDetails_Batch) => {
           val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetailsCbs(myDataResponse)
@@ -1865,7 +1868,7 @@ class EchannelsEngine @Inject()
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse) 
           Log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
-        }
+        }(myExecutionContext)
       }
       
       //r   
@@ -2338,7 +2341,7 @@ class EchannelsEngine @Inject()
         val responseFuture = getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest_test)
         
         val entityFut: Future[CbsMessage_MemberContributionsDetails_Batch] =
-          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberContributionsDetails_Batch])
+          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberContributionsDetails_Batch])(myExecutionContext)
 
         //Anonymous function
         val procMemberContributionsDetails = (myDataResponse: CbsMessage_MemberContributionsDetails_Batch) => {
@@ -3186,7 +3189,7 @@ class EchannelsEngine @Inject()
         val responseFuture = getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest_test)
         
         val entityFut: Future[CbsMessage_MemberDetailsGeneral_BatchData] =
-          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsGeneral_BatchData])
+          responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsGeneral_BatchData])(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
 
         //Anonymous function
         val procMemberDetailsGeneral = (myDataResponse: CbsMessage_MemberDetailsGeneral_BatchData) => {
@@ -3800,7 +3803,7 @@ class EchannelsEngine @Inject()
       val responseFuture = validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest_test)
       
       val entityFut: Future[CbsMessage_MemberDetailsValidate_Batch] =
-        responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch])
+        responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch])(myExecutionContext)
 
       //Anonymous function
       val procMemberDetailsValidate = (myDataResponse: CbsMessage_MemberDetailsValidate_Batch) => {
@@ -4373,7 +4376,7 @@ class EchannelsEngine @Inject()
       var responseCode: Int = 1
       var responseMessage: String = "Error occured during processing, please try again."
       //var myMemberProjectionBenefitsResponse_BatchData : Seq[MemberProjectionBenefitsResponse_Batch] = Seq.empty[MemberProjectionBenefitsResponse_Batch]
-      val strApifunction : String = "getMemberProjectionBenefitsDetails"
+      val strApifunction: String = "getMemberProjectionBenefitsDetails"
 
       try
       {
@@ -4706,7 +4709,7 @@ class EchannelsEngine @Inject()
                             else{
                               responseCode = 1
                               responseMessage = "Input parameters have invalid values"
-                              if (isValidMemberType == false){
+                              if (!isValidMemberType){
                                 responseMessage = "member type has an invalid value"
                               }
                               /*
@@ -6658,10 +6661,10 @@ class EchannelsEngine @Inject()
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
-        val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+        val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
-        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+        val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
         var start_time_DB: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
         val myStart_time: Future[String] = Future(start_time_DB)
         val myMember_No: Future[Int] = Future(myMemberNo)
@@ -9996,9 +9999,9 @@ class EchannelsEngine @Inject()
         Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
 
   }
@@ -11060,9 +11063,9 @@ class EchannelsEngine @Inject()
         Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
 
   }
@@ -12365,9 +12368,11 @@ class EchannelsEngine @Inject()
         Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType","esb")))
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
 
   }
@@ -13377,9 +13382,9 @@ class EchannelsEngine @Inject()
         Log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZXNiMDAxOjU2MjNqaGQ="
+    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
 
   }
