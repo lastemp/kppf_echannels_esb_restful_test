@@ -219,7 +219,8 @@ class EchannelsEngine @Inject()
   }
 
   //case class CbsMessage_ProjectionBenefits_Batch(rows: Seq[CbsMessage_ProjectionBenefits])
-  case class CbsMessage_ProjectionBenefits_Batch(memberno: Option[spray.json.JsValue], statuscode: Option[spray.json.JsValue], statusdescription: Option[spray.json.JsValue], projectionbenefitsdata: CbsMessage_ProjectionBenefits)
+  //case class CbsMessage_ProjectionBenefits_Batch(memberno: Option[spray.json.JsValue], statuscode: Option[spray.json.JsValue], statusdescription: Option[spray.json.JsValue], projectionbenefitsdata: CbsMessage_ProjectionBenefits)
+  case class CbsMessage_ProjectionBenefits_Batch(memberno: Option[spray.json.JsValue], statuscode: Option[spray.json.JsValue], statusdescription: Option[spray.json.JsValue], projectionbenefitsdata: Option[CbsMessage_ProjectionBenefits])
   case object CbsMessage_ProjectionBenefits_Batch extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val CbsMessage_ProjectionBenefits_BatchFormat = jsonFormat4(CbsMessage_ProjectionBenefits_Batch.apply)
   }
@@ -6846,8 +6847,9 @@ class EchannelsEngine @Inject()
                           isExists_projectionbenefitsdata = {
                             var isExists: Boolean = false
                             if (statuscode != 0) {isExists = false}
-                            else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == null) {isExists = false}
-                            else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == None) {isExists = false}
+                            //else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == null) {isExists = false}
+                            //else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata == None) {isExists = false}
+                            else if (myResultCbsMessage_BatchData.get.projectionbenefitsdata.getOrElse(None) == None) {isExists = false}
                             else {isExists = true}
                             isExists
                           }
@@ -6861,7 +6863,8 @@ class EchannelsEngine @Inject()
 
                         //if (myResultCbsMessage_BatchData.get.projectionbenefitsdata != None) {
                         if (isExists_projectionbenefitsdata) {
-                          val myProjectionBenefitsData = myResultCbsMessage_BatchData.get.projectionbenefitsdata
+                          //val myProjectionBenefitsData = myResultCbsMessage_BatchData.get.projectionbenefitsdata
+                          val myProjectionBenefitsData = myResultCbsMessage_BatchData.get.projectionbenefitsdata.get
 
                           //strCalc_date
                           if (myProjectionBenefitsData.calc_date != None) {
