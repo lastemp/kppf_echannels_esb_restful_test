@@ -1194,10 +1194,11 @@ class EchannelsEngine @Inject()
       var myMemberBalanceDetailsResponse_BatchData: Seq[MemberBalanceDetailsResponse_Batch] = Seq.empty[MemberBalanceDetailsResponse_Batch]
       var myMemberBalanceDetails_BatchRequest_test: MemberBalanceDetails_BatchRequest = null
       val strApifunction: String = "getMemberBalanceDetails"
+      var strRequest: String = ""
 
       try
       {
-        var strRequest: String = ""
+        //var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
         var isDataFound : Boolean = false
@@ -1846,7 +1847,8 @@ class EchannelsEngine @Inject()
           val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetailsCbs(myDataResponse)
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          //log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -1858,6 +1860,7 @@ class EchannelsEngine @Inject()
           }
           .recover {
             case e: scala.concurrent.TimeoutException =>
+              log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
               InternalServerError("timeout")
           }
       }  
@@ -1872,7 +1875,7 @@ class EchannelsEngine @Inject()
 
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse) 
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }(myExecutionContext)
       }
@@ -1891,10 +1894,10 @@ class EchannelsEngine @Inject()
       var myMemberContributionsDetailsResponse_BatchData: Seq[MemberContributionsDetailsResponse_Batch] = Seq.empty[MemberContributionsDetailsResponse_Batch]
       var myMemberContributionsDetails_BatchRequest_test: MemberContributionsDetails_BatchRequest = null
       val strApifunction: String = "getMemberContributionsDetails"
+      var strRequest: String = ""
 
       try
       {
-        var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
         var isDataFound : Boolean = false
@@ -2371,7 +2374,7 @@ class EchannelsEngine @Inject()
           val myMemberContributionsDetailsResponse_BatchData = unpackMemberContributionsDetailsCbs(myDataResponse)
           val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse)
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -2383,6 +2386,7 @@ class EchannelsEngine @Inject()
           }
           .recover {
           case e: scala.concurrent.TimeoutException =>
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
             InternalServerError("timeout")
           }
       }  
@@ -2396,7 +2400,7 @@ class EchannelsEngine @Inject()
           val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse) 
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }
       }
@@ -2415,10 +2419,10 @@ class EchannelsEngine @Inject()
       var myMemberDetailsGeneralResponse: Seq[MemberDetailsGeneralResponse_BatchData] = Seq.empty[MemberDetailsGeneralResponse_BatchData]
       var myMemberDetailsGeneral_BatchRequest_test: MemberDetailsGeneral_BatchRequest = null
       val strApifunction: String = "getMemberDetailsGeneral"
+      var strRequest: String = ""
 
       try
       {
-        var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
         var isDataFound: Boolean = false
@@ -3228,7 +3232,7 @@ class EchannelsEngine @Inject()
           val myMemberDetailsGeneralResponse_BatchData = unpackMemberDetailsGeneralCbs(myDataResponse)
           val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -3240,6 +3244,7 @@ class EchannelsEngine @Inject()
           }
           .recover {
           case e: scala.concurrent.TimeoutException =>
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
             InternalServerError("timeout")
           }
         }  
@@ -3254,7 +3259,7 @@ class EchannelsEngine @Inject()
             val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse)
 
             val jsonResponse = Json.toJson(myMemberDetailsResponse)
-            log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
             Ok(jsonResponse)
           }
       }
@@ -3274,10 +3279,10 @@ class EchannelsEngine @Inject()
       var myMemberDetailsValidateResponse_BatchData : Seq[MemberDetailsValidateResponse_Batch] = Seq.empty[MemberDetailsValidateResponse_Batch]
       var myMemberDetailsValidate_BatchRequest_test: MemberDetailsValidate_BatchRequest = null
       val strApifunction : String = "validateMemberDetails"
+      var strRequest: String = ""
 
       try
       {
-        var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
         var isDataFound : Boolean = false
@@ -3854,7 +3859,7 @@ class EchannelsEngine @Inject()
         val myMemberDetailsValidateResponse_BatchData = unpackMemberDetailsValidateCbs(myDataResponse)
         val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
         val jsonResponse = Json.toJson(myMemberDetailsResponse)
-        log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+        log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
         jsonResponse
       }
       //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -3866,6 +3871,7 @@ class EchannelsEngine @Inject()
         }
         .recover {
         case e: scala.concurrent.TimeoutException =>
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
           InternalServerError("timeout")
         }
       }  
@@ -3879,7 +3885,7 @@ class EchannelsEngine @Inject()
           val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
-          log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
           Ok(jsonResponse)
         }
       }
