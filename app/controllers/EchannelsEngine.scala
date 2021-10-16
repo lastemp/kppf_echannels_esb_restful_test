@@ -1186,6 +1186,7 @@ class EchannelsEngine @Inject()
   }
   def getMemberBalanceDetails = Action.async { request =>
     //Future {
+      val dateFromeChannels: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       val startDate: String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
       var isProcessed: Boolean = false
       var entryID: Int = 0
@@ -1195,6 +1196,7 @@ class EchannelsEngine @Inject()
       var myMemberBalanceDetails_BatchRequest_test: MemberBalanceDetails_BatchRequest = null
       val strApifunction: String = "getMemberBalanceDetails"
       var strRequest: String = ""
+      var strChannelType : String = ""
 
       try
       {
@@ -1204,7 +1206,6 @@ class EchannelsEngine @Inject()
         var isDataFound : Boolean = false
         var isAuthTokenFound : Boolean = false
         var isCredentialsFound : Boolean = false
-        var strChannelType : String = ""
         var strUserName : String = ""
         var strPassword : String = ""
         var strClientIP : String = ""
@@ -1817,6 +1818,7 @@ class EchannelsEngine @Inject()
             InternalServerError("timeout")
         }
       */  
+      val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
         val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
         /*
@@ -1847,8 +1849,10 @@ class EchannelsEngine @Inject()
           val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetailsCbs(myDataResponse)
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse)
-          //log_data(strApifunction + " : " + "response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+          
+          insertLogsEchannelsMemberBalanceDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -1860,7 +1864,13 @@ class EchannelsEngine @Inject()
           }
           .recover {
             case e: scala.concurrent.TimeoutException =>
+
+              responseCode = 1
+              responseMessage = "InternalServerError (timeout)"
+
+              insertLogsEchannelsMemberBalanceDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
               log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+
               InternalServerError("timeout")
           }
       }  
@@ -1875,7 +1885,10 @@ class EchannelsEngine @Inject()
 
           val myMemberBalanceDetailsResponse = MemberBalanceDetailsResponse_BatchData(myMemberBalanceDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberBalanceDetailsResponse) 
+
+          insertLogsEchannelsMemberBalanceDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           Ok(jsonResponse)
         }(myExecutionContext)
       }
@@ -1886,6 +1899,7 @@ class EchannelsEngine @Inject()
   }
   def getMemberContributionsDetails = Action.async { request =>
     //Future {
+      val dateFromeChannels: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       val startDate: String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
       var isProcessed: Boolean = false
       var entryID: Int = 0
@@ -1895,18 +1909,18 @@ class EchannelsEngine @Inject()
       var myMemberContributionsDetails_BatchRequest_test: MemberContributionsDetails_BatchRequest = null
       val strApifunction: String = "getMemberContributionsDetails"
       var strRequest: String = ""
+      var strChannelType: String = ""
 
       try
       {
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
-        var isDataFound : Boolean = false
-        var isAuthTokenFound : Boolean = false
-        var isCredentialsFound : Boolean = false
-        var strChannelType : String = ""
-        var strUserName : String = ""
-        var strPassword : String = ""
-        var strClientIP : String = ""
+        var isDataFound: Boolean = false
+        var isAuthTokenFound: Boolean = false
+        var isCredentialsFound: Boolean = false
+        var strUserName: String = ""
+        var strPassword: String = ""
+        var strClientIP: String = ""
 
         if (!request.body.asJson.isEmpty) {
           isDataFound = true
@@ -2346,6 +2360,7 @@ class EchannelsEngine @Inject()
           log_errors(strApifunction + " : " + tr.getMessage())
       }
 
+      val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
         val responseFuture = getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest_test)
         /*
@@ -2374,7 +2389,10 @@ class EchannelsEngine @Inject()
           val myMemberContributionsDetailsResponse_BatchData = unpackMemberContributionsDetailsCbs(myDataResponse)
           val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse)
+
+          insertLogsEchannelsMemberContributionsDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -2386,7 +2404,13 @@ class EchannelsEngine @Inject()
           }
           .recover {
           case e: scala.concurrent.TimeoutException =>
+
+            responseCode = 1
+            responseMessage = "InternalServerError (timeout)"
+
+            insertLogsEchannelsMemberContributionsDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
             log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+
             InternalServerError("timeout")
           }
       }  
@@ -2400,7 +2424,10 @@ class EchannelsEngine @Inject()
           val myMemberContributionsDetailsResponse = MemberContributionsDetailsResponse_BatchData(myMemberContributionsDetailsResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberContributionsDetailsResponse) 
+
+          insertLogsEchannelsMemberContributionsDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           Ok(jsonResponse)
         }
       }
@@ -2411,7 +2438,8 @@ class EchannelsEngine @Inject()
   }
   def getMemberDetailsGeneral = Action.async { request =>
     //Future {
-      val startDate: String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
+      val dateFromeChannels: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
+      val startDate: String = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
       var isProcessed: Boolean = false
       var entryID: Int = 0
       var responseCode: Int = 1
@@ -2420,7 +2448,7 @@ class EchannelsEngine @Inject()
       var myMemberDetailsGeneral_BatchRequest_test: MemberDetailsGeneral_BatchRequest = null
       val strApifunction: String = "getMemberDetailsGeneral"
       var strRequest: String = ""
-
+      var strChannelType: String = ""
       try
       {
         var strRequestHeader: String = ""
@@ -2428,7 +2456,7 @@ class EchannelsEngine @Inject()
         var isDataFound: Boolean = false
         var isAuthTokenFound: Boolean = false
         var isCredentialsFound: Boolean = false
-        var strChannelType: String = ""
+        //var strChannelType: String = ""
         var strUserName: String = ""
         var strPassword: String = ""
         var strClientIP: String = ""
@@ -3209,6 +3237,7 @@ class EchannelsEngine @Inject()
         case tr: Throwable =>
           log_errors(strApifunction + " : " + tr.getMessage())
       }
+      val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
         val responseFuture = getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest_test)
         
@@ -3232,7 +3261,10 @@ class EchannelsEngine @Inject()
           val myMemberDetailsGeneralResponse_BatchData = unpackMemberDetailsGeneralCbs(myDataResponse)
           val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse_BatchData)
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
+
+          insertLogsEchannelsMemberDetailsGeneralRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           jsonResponse
         }
         //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
@@ -3244,24 +3276,33 @@ class EchannelsEngine @Inject()
           }
           .recover {
           case e: scala.concurrent.TimeoutException =>
+
+            responseCode = 1
+            responseMessage = "InternalServerError (timeout)"
+
+            insertLogsEchannelsMemberDetailsGeneralRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
             log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+
             InternalServerError("timeout")
           }
-        }  
-        else{
-          Future {
-            if (myMemberDetailsGeneralResponse.isEmpty || myMemberDetailsGeneralResponse == true){
-              val myMemberDetailsGeneralResponse_Batch = MemberDetailsGeneralResponse_Batch(0, "", 0, "", "", responseCode, responseMessage)
-              var myMemberDetailsGeneralResponse_BatchData = MemberDetailsGeneralResponse_BatchData(myMemberDetailsGeneralResponse_Batch, Seq.empty[MemberBalanceDetailsGeneralResponse_Batch], Seq.empty[BeneficiaryDetailsGeneralResponse_Batch])
-              myMemberDetailsGeneralResponse = myMemberDetailsGeneralResponse :+ myMemberDetailsGeneralResponse_BatchData
-            }
-
-            val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse)
-
-            val jsonResponse = Json.toJson(myMemberDetailsResponse)
-            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
-            Ok(jsonResponse)
+      }  
+      else{
+        Future {
+          if (myMemberDetailsGeneralResponse.isEmpty || myMemberDetailsGeneralResponse == true){
+            val myMemberDetailsGeneralResponse_Batch = MemberDetailsGeneralResponse_Batch(0, "", 0, "", "", responseCode, responseMessage)
+            var myMemberDetailsGeneralResponse_BatchData = MemberDetailsGeneralResponse_BatchData(myMemberDetailsGeneralResponse_Batch, Seq.empty[MemberBalanceDetailsGeneralResponse_Batch], Seq.empty[BeneficiaryDetailsGeneralResponse_Batch])
+            myMemberDetailsGeneralResponse = myMemberDetailsGeneralResponse :+ myMemberDetailsGeneralResponse_BatchData
           }
+
+          val myMemberDetailsResponse = MemberDetailsGeneralResponse(myMemberDetailsGeneralResponse)
+
+          val jsonResponse = Json.toJson(myMemberDetailsResponse)
+
+          insertLogsEchannelsMemberDetailsGeneralRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
+          Ok(jsonResponse)
+        }
       }
       /*
       val r: Result = Ok(jsonResponse)
@@ -3271,6 +3312,7 @@ class EchannelsEngine @Inject()
   }
   def validateMemberDetails = Action.async { request =>
     //Future {
+      val dateFromeChannels: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       val startDate: String =  new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS").format(new java.util.Date)
       var isProcessed: Boolean = false
       var entryID: Int = 0
@@ -3280,6 +3322,7 @@ class EchannelsEngine @Inject()
       var myMemberDetailsValidate_BatchRequest_test: MemberDetailsValidate_BatchRequest = null
       val strApifunction : String = "validateMemberDetails"
       var strRequest: String = ""
+      var strChannelType : String = ""
 
       try
       {
@@ -3288,7 +3331,6 @@ class EchannelsEngine @Inject()
         var isDataFound : Boolean = false
         var isAuthTokenFound : Boolean = false
         var isCredentialsFound : Boolean = false
-        var strChannelType : String = ""
         var strUserName : String = ""
         var strPassword : String = ""
         var strClientIP : String = ""
@@ -3836,44 +3878,55 @@ class EchannelsEngine @Inject()
         case tr: Throwable =>
           log_errors(strApifunction + " : " + tr.getMessage())
       }
+
+      val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
-      val responseFuture = validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest_test)
-      
-      val entityFut: Future[CbsMessage_MemberDetailsValidate_Batch] =
-        responseFuture.flatMap(
-        resp => 
-          if (resp.entity != null && resp.status.intValue() == 200){
-            Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch]
-          }
-          else {
-            Future {
-              log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
-              val x: CbsMessage_MemberDetailsValidate_Batch = null
-              x
+        val responseFuture = validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest_test)
+        
+        val entityFut: Future[CbsMessage_MemberDetailsValidate_Batch] =
+          responseFuture.flatMap(
+          resp => 
+            if (resp.entity != null && resp.status.intValue() == 200){
+              Unmarshal(resp.entity).to[CbsMessage_MemberDetailsValidate_Batch]
             }
+            else {
+              Future {
+                log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+                val x: CbsMessage_MemberDetailsValidate_Batch = null
+                x
+              }
+            }
+          )(myExecutionContext)
+
+        //Anonymous function
+        val procMemberDetailsValidate = (myDataResponse: CbsMessage_MemberDetailsValidate_Batch) => {
+          val myMemberDetailsValidateResponse_BatchData = unpackMemberDetailsValidateCbs(myDataResponse)
+          val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
+          val jsonResponse = Json.toJson(myMemberDetailsResponse)
+
+          insertLogsEchannelsMemberValidationDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
+          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
+          jsonResponse
+        }
+        //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
+
+        entityFut
+          .withTimeout {httpCallDelay.seconds}
+          .map { x =>
+          Ok(procMemberDetailsValidate(x))
           }
-        )(myExecutionContext)
+          .recover {
+          case e: scala.concurrent.TimeoutException =>
 
-      //Anonymous function
-      val procMemberDetailsValidate = (myDataResponse: CbsMessage_MemberDetailsValidate_Batch) => {
-        val myMemberDetailsValidateResponse_BatchData = unpackMemberDetailsValidateCbs(myDataResponse)
-        val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
-        val jsonResponse = Json.toJson(myMemberDetailsResponse)
-        log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
-        jsonResponse
-      }
-      //entityFut.map(x => Ok(procMemberBalanceDetails(x)))
+            responseCode = 1
+            responseMessage = "InternalServerError (timeout)"
 
-      entityFut
-        .withTimeout {httpCallDelay.seconds}
-        .map { x =>
-        Ok(procMemberDetailsValidate(x))
-        }
-        .recover {
-        case e: scala.concurrent.TimeoutException =>
-          log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
-          InternalServerError("timeout")
-        }
+            insertLogsEchannelsMemberValidationDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+
+            InternalServerError("timeout")
+          }
       }  
       else{
         Future {
@@ -3885,7 +3938,10 @@ class EchannelsEngine @Inject()
           val myMemberDetailsResponse = MemberDetailsValidateResponse_BatchData(myMemberDetailsValidateResponse_BatchData)
 
           val jsonResponse = Json.toJson(myMemberDetailsResponse)
+
+          insertLogsEchannelsMemberValidationDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, jsonResponse.toString(), strChannelType, request.remoteAddress)
           log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + jsonResponse.toString() + " , remoteAddress - " + request.remoteAddress)
+
           Ok(jsonResponse)
         }
       }
@@ -14563,6 +14619,122 @@ class EchannelsEngine @Inject()
     }
 
     return  myTxnID
+  }
+  def insertLogsEchannelsMemberDetailsGeneralRequests(myStatusCode: Int, strStatusMessage: String, strDate_from_Echannels: String, strDate_to_Cbs: String, requestValidationStatus: Boolean, strRequestMessage_eChannel: String, strResponseMessage_eChannel: String, strChannelType: String, strClientIP: String) : Unit = {
+    val strApifunction: String = "insertLogsEchannelsMemberDetailsGeneralRequests"
+    try{
+        myDB.withConnection { implicit  myconn =>
+
+          val strSQL: String = "{ call dbo.insertLogsEchannelsMemberDetailsGeneralRequests(?,?,?,?,?,?,?,?,?) }"
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+
+          mystmt.setInt(1,myStatusCode)
+          mystmt.setString(2,strStatusMessage)
+          mystmt.setString(3,strDate_from_Echannels)
+          mystmt.setString(4,strDate_to_Cbs)
+          mystmt.setBoolean(5,requestValidationStatus)
+          mystmt.setString(6,strRequestMessage_eChannel)
+          mystmt.setString(7,strResponseMessage_eChannel)
+          mystmt.setString(8,strChannelType)
+          mystmt.setString(9,strClientIP)
+
+          mystmt.execute()
+        }
+    }
+    catch
+      {
+        case ex: Exception =>
+          log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
+        case tr: Throwable =>
+          log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
+      }
+  }
+  def insertLogsEchannelsMemberBalanceDetailsRequests(myStatusCode: Int, strStatusMessage: String, strDate_from_Echannels: String, strDate_to_Cbs: String, requestValidationStatus: Boolean, strRequestMessage_eChannel: String, strResponseMessage_eChannel: String, strChannelType: String, strClientIP: String) : Unit = {
+    val strApifunction: String = "insertLogsEchannelsMemberBalanceDetailsRequests"
+    try{
+        myDB.withConnection { implicit  myconn =>
+
+          val strSQL: String = "{ call dbo.insertLogsEchannelsMemberBalanceDetailsRequests(?,?,?,?,?,?,?,?,?) }"
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+
+          mystmt.setInt(1,myStatusCode)
+          mystmt.setString(2,strStatusMessage)
+          mystmt.setString(3,strDate_from_Echannels)
+          mystmt.setString(4,strDate_to_Cbs)
+          mystmt.setBoolean(5,requestValidationStatus)
+          mystmt.setString(6,strRequestMessage_eChannel)
+          mystmt.setString(7,strResponseMessage_eChannel)
+          mystmt.setString(8,strChannelType)
+          mystmt.setString(9,strClientIP)
+
+          mystmt.execute()
+        }
+    }
+    catch
+      {
+        case ex: Exception =>
+          log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
+        case tr: Throwable =>
+          log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
+      }
+  }
+  def insertLogsEchannelsMemberContributionsDetailsRequests(myStatusCode: Int, strStatusMessage: String, strDate_from_Echannels: String, strDate_to_Cbs: String, requestValidationStatus: Boolean, strRequestMessage_eChannel: String, strResponseMessage_eChannel: String, strChannelType: String, strClientIP: String) : Unit = {
+    val strApifunction: String = "insertLogsEchannelsMemberContributionsDetailsRequests"
+    try{
+        myDB.withConnection { implicit  myconn =>
+
+          val strSQL: String = "{ call dbo.insertLogsEchannelsMemberContributionsDetailsRequests(?,?,?,?,?,?,?,?,?) }"
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+
+          mystmt.setInt(1,myStatusCode)
+          mystmt.setString(2,strStatusMessage)
+          mystmt.setString(3,strDate_from_Echannels)
+          mystmt.setString(4,strDate_to_Cbs)
+          mystmt.setBoolean(5,requestValidationStatus)
+          mystmt.setString(6,strRequestMessage_eChannel)
+          mystmt.setString(7,strResponseMessage_eChannel)
+          mystmt.setString(8,strChannelType)
+          mystmt.setString(9,strClientIP)
+
+          mystmt.execute()
+        }
+    }
+    catch
+      {
+        case ex: Exception =>
+          log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
+        case tr: Throwable =>
+          log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
+      }
+  }
+  def insertLogsEchannelsMemberValidationDetailsRequests(myStatusCode: Int, strStatusMessage: String, strDate_from_Echannels: String, strDate_to_Cbs: String, requestValidationStatus: Boolean, strRequestMessage_eChannel: String, strResponseMessage_eChannel: String, strChannelType: String, strClientIP: String) : Unit = {
+    val strApifunction: String = "insertLogsEchannelsMemberValidationDetailsRequests"
+    try{
+        myDB.withConnection { implicit  myconn =>
+
+          val strSQL: String = "{ call dbo.insertLogsEchannelsMemberValidationDetailsRequests(?,?,?,?,?,?,?,?,?) }"
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+
+          mystmt.setInt(1,myStatusCode)
+          mystmt.setString(2,strStatusMessage)
+          mystmt.setString(3,strDate_from_Echannels)
+          mystmt.setString(4,strDate_to_Cbs)
+          mystmt.setBoolean(5,requestValidationStatus)
+          mystmt.setString(6,strRequestMessage_eChannel)
+          mystmt.setString(7,strResponseMessage_eChannel)
+          mystmt.setString(8,strChannelType)
+          mystmt.setString(9,strClientIP)
+
+          mystmt.execute()
+        }
+    }
+    catch
+      {
+        case ex: Exception =>
+          log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
+        case tr: Throwable =>
+          log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
+      }
   }
   def updateMemberProjectionBenefitsDetailsRequests(myID: java.math.BigDecimal, Posted_to_Echannels: Boolean, Post_picked_Echannels: Boolean, strDate_to_Echannels: String, strDate_from_Echannels: String, myStatusCode_Echannels : Int, strStatusMessage_Echannels: String, strRequestData: String) : Boolean = {
     //var isPhoneUserRegistered: Boolean = false
