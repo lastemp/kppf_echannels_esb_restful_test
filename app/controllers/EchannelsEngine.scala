@@ -77,9 +77,23 @@ class MyExecutionContextModule2 extends AbstractModule {
 
   }
 }
+//myExecutionContext3
+trait MyExecutionContext3 extends ExecutionContext
+
+class MyExecutionContextImpl3 @Inject()(system: ActorSystem)
+  extends CustomExecutionContext(system, "database-insertupdate-io-operations-dispatcher") with MyExecutionContext3
+
+class MyExecutionContextModule3 extends AbstractModule {
+
+  override def configure(): Unit = {
+    bind(classOf[MyExecutionContext3])
+      .to(classOf[MyExecutionContextImpl3])
+
+  }
+}
 
 class EchannelsEngine @Inject()
-  (myExecutionContext: MyExecutionContext, myExecutionContextFileWrite: MyExecutionContext2, cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
+  (myExecutionContext: MyExecutionContext, myExecutionContextFileWrite: MyExecutionContext2, myExecutionContextDatabaseInsertupdate: MyExecutionContext3, cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
   extends AbstractController(cc) {
 
   //case class MpesaTransactionStatus_Request(mobileno: String, transactioncode: String, amount: Float)
@@ -1830,20 +1844,33 @@ class EchannelsEngine @Inject()
             responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
             */
         val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
-            responseFuture.flatMap(
-              resp => 
-                if (resp.entity != null && resp.status.intValue() == 200){
-                  Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch]
+          responseFuture.flatMap(
+            resp => 
+              if (resp.entity != null && resp.status.intValue() == 200){
+                Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch]
+              }
+              else {
+                Future {
+                  //log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
+                  log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString  + " , request - " + strRequest)
+
+                  val x: CbsMessage_MemberBalanceDetails_Batch = null
+                  x
                 }
-                else {
-                  Future {
-                    log_errors(strApifunction + " : " + " resp.entity " + resp.entity.toString + " , resp.status.intValue() " + resp.status.intValue().toString)
-                    val x: CbsMessage_MemberBalanceDetails_Batch = null
-                    x
-                  }
-                }
-            )(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext    
-        
+              }
+          )(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
+          .recover {
+            case _ =>
+
+              responseCode = 1
+              responseMessage = "InternalServerError (exception error occured)"
+
+              log_errors(strApifunction + " : " + "request - " + strRequest + " , InternalServerError (exception error occured)")
+
+              val x: CbsMessage_MemberBalanceDetails_Batch = null
+              x
+          }
+                
         //Anonymous function
         val procMemberBalanceDetails = (myDataResponse: CbsMessage_MemberBalanceDetails_Batch) => {
           val myMemberBalanceDetailsResponse_BatchData = unpackMemberBalanceDetailsCbs(myDataResponse)
@@ -1869,14 +1896,20 @@ class EchannelsEngine @Inject()
               responseMessage = "InternalServerError (timeout)"
 
               insertLogsEchannelsMemberBalanceDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
-              log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+              log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
 
               InternalServerError("timeout")
+            case _ =>
+              responseCode = 1
+              responseMessage = "InternalServerError (exception error occured)"
+
+              insertLogsEchannelsMemberBalanceDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
+              log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
+
+              InternalServerError("exception error")
           }
       }  
       else{
-        //Ok(jsonResponse)
-        //Future {Ok(jsonResponse)}
         Future {
           if (myMemberBalanceDetailsResponse_BatchData.isEmpty || myMemberBalanceDetailsResponse_BatchData == true){
             val myMemberBalanceDetailsResponse_Batch = MemberBalanceDetailsResponse_Batch(0, "", "", "", 0, 0, 0, 0, 0, 0, 0, responseCode, responseMessage)
@@ -2383,6 +2416,17 @@ class EchannelsEngine @Inject()
                 }
               }
           )(myExecutionContext)
+          .recover {
+            case _ =>
+
+              responseCode = 1
+              responseMessage = "InternalServerError (exception error occured)"
+
+              log_errors(strApifunction + " : " + "request - " + strRequest + " , InternalServerError (exception error occured)")
+
+              val x: CbsMessage_MemberContributionsDetails_Batch = null
+              x
+          }
 
         //Anonymous function
         val procMemberContributionsDetails = (myDataResponse: CbsMessage_MemberContributionsDetails_Batch) => {
@@ -2409,9 +2453,19 @@ class EchannelsEngine @Inject()
             responseMessage = "InternalServerError (timeout)"
 
             insertLogsEchannelsMemberContributionsDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
-            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
 
             InternalServerError("timeout")
+
+          case _ =>
+
+            responseCode = 1
+            responseMessage = "InternalServerError (exception error occured)"
+
+            insertLogsEchannelsMemberContributionsDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
+
+            InternalServerError("exception error")  
           }
       }  
       else{
@@ -3255,6 +3309,17 @@ class EchannelsEngine @Inject()
                 }
               }
           )(myExecutionContext)//Lets execute this function in a diff threadpool i.e myExecutionContext
+          .recover {
+            case _ =>
+
+              responseCode = 1
+              responseMessage = "InternalServerError (exception error occured)"
+
+              log_errors(strApifunction + " : " + "request - " + strRequest + " , InternalServerError (exception error occured)")
+
+              val x: CbsMessage_MemberDetailsGeneral_BatchData = null
+              x
+          }
 
         //Anonymous function
         val procMemberDetailsGeneral = (myDataResponse: CbsMessage_MemberDetailsGeneral_BatchData) => {
@@ -3281,9 +3346,18 @@ class EchannelsEngine @Inject()
             responseMessage = "InternalServerError (timeout)"
 
             insertLogsEchannelsMemberDetailsGeneralRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
-            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
 
             InternalServerError("timeout")
+          case _ =>
+
+            responseCode = 1
+            responseMessage = "InternalServerError (exception error occured)"
+
+            insertLogsEchannelsMemberDetailsGeneralRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
+
+            InternalServerError("exception error")  
           }
       }  
       else{
@@ -3897,6 +3971,17 @@ class EchannelsEngine @Inject()
               }
             }
           )(myExecutionContext)
+          .recover {
+            case _ =>
+
+              responseCode = 1
+              responseMessage = "InternalServerError (exception error occured)"
+
+              log_errors(strApifunction + " : " + "request - " + strRequest + " , InternalServerError (exception error occured)")
+
+              val x: CbsMessage_MemberDetailsValidate_Batch = null
+              x
+          }
 
         //Anonymous function
         val procMemberDetailsValidate = (myDataResponse: CbsMessage_MemberDetailsValidate_Batch) => {
@@ -3923,9 +4008,19 @@ class EchannelsEngine @Inject()
             responseMessage = "InternalServerError (timeout)"
 
             insertLogsEchannelsMemberValidationDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
-            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + " InternalServerError(timeout)" + " , remoteAddress - " + request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
 
             InternalServerError("timeout")
+
+          case _ =>
+
+            responseCode = 1
+            responseMessage = "InternalServerError (exception error occured)"
+
+            insertLogsEchannelsMemberValidationDetailsRequests(responseCode, responseMessage, dateFromeChannels, strDatetoCbs, successfulEntry, strRequest, responseMessage, strChannelType, request.remoteAddress)
+            log_data(strApifunction + " : " + "request - " + strRequest  + " , response - " + responseMessage + " , remoteAddress - " + request.remoteAddress)
+
+            InternalServerError("exception error")  
           }
       }  
       else{
@@ -14175,11 +14270,11 @@ class EchannelsEngine @Inject()
         log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
     }
 
-    val myuri : Uri = strApiURL //Maintain in DB
+    val myuri: Uri = strApiURL //Maintain in DB
 
     try
     {
-      if (isValidData == true){
+      if (isValidData){
         //val strCurrentTime : String = new SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date)
 
         //val myresponse_MemberProjectionBenefitsData =  MemberProjectionBenefitsDetailsResponse_BatchData(memberno, statuscode, statusdescription, myProjectionbenefitsdata).toJson
@@ -14591,7 +14686,7 @@ class EchannelsEngine @Inject()
     val strApifunction : String = "insertEchannelsMemberProjectionBenefitsDetailsRequests"
     var myTxnID: java.math.BigDecimal = new java.math.BigDecimal(0)
 
-    val strSQL : String = "{ call dbo.insertEchannelsMemberProjectionBenefitsDetailsRequests(?,?) }"
+    val strSQL: String = "{ call dbo.insertEchannelsMemberProjectionBenefitsDetailsRequests(?,?) }"
 
     try {
       myDB.withConnection { implicit myconn =>
@@ -14709,54 +14804,41 @@ class EchannelsEngine @Inject()
   }
   def insertLogsEchannelsMemberValidationDetailsRequests(myStatusCode: Int, strStatusMessage: String, strDate_from_Echannels: String, strDate_to_Cbs: String, requestValidationStatus: Boolean, strRequestMessage_eChannel: String, strResponseMessage_eChannel: String, strChannelType: String, strClientIP: String) : Unit = {
     val strApifunction: String = "insertLogsEchannelsMemberValidationDetailsRequests"
-    try{
+    Future {
+      try{
         myDB.withConnection { implicit  myconn =>
 
-          val strSQL: String = "{ call dbo.insertLogsEchannelsMemberValidationDetailsRequests(?,?,?,?,?,?,?,?,?) }"
-          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+        val strSQL: String = "{ call dbo.insertLogsEchannelsMemberValidationDetailsRequests(?,?,?,?,?,?,?,?,?) }"
+        val mystmt: CallableStatement = myconn.prepareCall(strSQL)
 
-          mystmt.setInt(1,myStatusCode)
-          mystmt.setString(2,strStatusMessage)
-          mystmt.setString(3,strDate_from_Echannels)
-          mystmt.setString(4,strDate_to_Cbs)
-          mystmt.setBoolean(5,requestValidationStatus)
-          mystmt.setString(6,strRequestMessage_eChannel)
-          mystmt.setString(7,strResponseMessage_eChannel)
-          mystmt.setString(8,strChannelType)
-          mystmt.setString(9,strClientIP)
+        mystmt.setInt(1,myStatusCode)
+        mystmt.setString(2,strStatusMessage)
+        mystmt.setString(3,strDate_from_Echannels)
+        mystmt.setString(4,strDate_to_Cbs)
+        mystmt.setBoolean(5,requestValidationStatus)
+        mystmt.setString(6,strRequestMessage_eChannel)
+        mystmt.setString(7,strResponseMessage_eChannel)
+        mystmt.setString(8,strChannelType)
+        mystmt.setString(9,strClientIP)
 
-          mystmt.execute()
+        mystmt.execute()
         }
-    }
-    catch
+      }
+      catch
       {
         case ex: Exception =>
-          log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
+        log_errors(strApifunction + " : " + " , Error - " + ex.getMessage())
         case tr: Throwable =>
-          log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
+        log_errors(strApifunction + " : " + " , Error - " + tr.getMessage())
       }
+    }(myExecutionContextDatabaseInsertupdate)//Lets execute this function in a diff threadpool i.e myExecutionContextDatabaseInsertupdate
   }
-  def updateMemberProjectionBenefitsDetailsRequests(myID: java.math.BigDecimal, Posted_to_Echannels: Boolean, Post_picked_Echannels: Boolean, strDate_to_Echannels: String, strDate_from_Echannels: String, myStatusCode_Echannels : Int, strStatusMessage_Echannels: String, strRequestData: String) : Boolean = {
-    //var isPhoneUserRegistered: Boolean = false
-    //var strDescription: String = "Error occured during processing, please try again."
-    var isValidEntry : Boolean = false
-    var isSuccessful : Boolean = false
-    try{
-      /*
-      if (strDate_to_Mpesa != null && strDate_from_Mpesa != null){
-        if (strDate_to_Mpesa.trim.length > 0 && strDate_from_Mpesa.trim.length > 0){
-          isValidEntry = true
-        }
-        else {
-          isValidEntry = false
-        }
-      }
-      else {
-        isValidEntry = false
-      }
-      */
-      isValidEntry = true
-      if (isValidEntry == true){
+  //def updateMemberProjectionBenefitsDetailsRequests(myID: java.math.BigDecimal, Posted_to_Echannels: Boolean, Post_picked_Echannels: Boolean, strDate_to_Echannels: String, strDate_from_Echannels: String, myStatusCode_Echannels : Int, strStatusMessage_Echannels: String, strRequestData: String) : Boolean = {
+  def updateMemberProjectionBenefitsDetailsRequests(myID: java.math.BigDecimal, Posted_to_Echannels: Boolean, Post_picked_Echannels: Boolean, strDate_to_Echannels: String, strDate_from_Echannels: String, myStatusCode_Echannels : Int, strStatusMessage_Echannels: String, strRequestData: String) : Unit = {
+    val strApifunction: String = "updateMemberProjectionBenefitsDetailsRequests"
+
+    Future {
+      try{
         myDB.withConnection { implicit  myconn =>
 
           val strSQL : String = "{ call dbo.UpdateEchannelsMemberProjectionBenefitsDetailsRequests(?,?,?,?,?,?,?,?) }"
@@ -14772,20 +14854,17 @@ class EchannelsEngine @Inject()
           mystmt.setString(8,strRequestData)
 
           mystmt.executeUpdate()
-          isSuccessful = true
         }
       }
+      catch
+        {
+          case ex: Exception =>
+            log_errors(strApifunction + " : ID - " + myID + " , Error - " + ex.getMessage())
+          case tr: Throwable =>
+            log_errors(strApifunction + " : ID - " + myID + " , Error - " + tr.getMessage())
+        }
+    }(myExecutionContextDatabaseInsertupdate)//Lets execute this function in a diff threadpool i.e myExecutionContextDatabaseInsertupdate
 
-    }
-    catch
-      {
-        case ex: Exception =>
-          log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + ex.getMessage())
-        case tr: Throwable =>
-          log_errors("UpdateLogsOutgoingLipaNaMpesaRequests : ID - " + myID + " , Error - " + tr.getMessage())
-      }
-
-    isSuccessful
   }
   def getCBSProjectionBenefitsURL(myMemberId: Int, myProjectionType: Int) : String = {
 
