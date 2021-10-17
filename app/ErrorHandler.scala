@@ -1,3 +1,4 @@
+/*
 import javax.inject.{Inject, Provider}
 
 import play.api._
@@ -79,3 +80,4 @@ class ErrorHandler(environment: Environment,
     Future.successful(InternalServerError)
   }
 }
+*/

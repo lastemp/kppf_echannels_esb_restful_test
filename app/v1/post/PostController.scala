@@ -1,3 +1,4 @@
+/*
 package v1.post
 
 import javax.inject.Inject
@@ -63,3 +64,4 @@ class PostController @Inject()(cc: PostControllerComponents)(implicit ec: Execut
     form.bindFromRequest().fold(failure, success)
   }
 }
+*/

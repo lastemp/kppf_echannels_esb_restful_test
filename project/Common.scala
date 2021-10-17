@@ -14,19 +14,6 @@ object Common extends AutoPlugin {
     version := "1.0-SNAPSHOT",
     resolvers += Resolver.typesafeRepo("releases"),
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
-    scalacOptions ++= Seq(
-      "-encoding",
-      "UTF-8", // yes, this is 2 args
-      "-target:jvm-1.8",
-      "-deprecation",
-      "-feature",
-      "-unchecked",
-      "-Xlint",
-      "-Yno-adapted-args",
-      "-Ywarn-numeric-widen",
-      "-Xfatal-warnings"
-    ),
-    scalacOptions in Test ++= Seq("-Yrangepos"),
     autoAPIMappings := true
   )
 }

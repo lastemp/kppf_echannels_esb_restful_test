@@ -1,3 +1,4 @@
+/*
 package v1.post
 
 import javax.inject.{Inject, Singleton}
@@ -77,3 +78,4 @@ class PostRepositoryImpl @Inject()()(implicit ec: PostExecutionContext) extends 
   }
 
 }
+*/

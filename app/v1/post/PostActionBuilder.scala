@@ -1,3 +1,4 @@
+/*
 package v1.post
 
 import javax.inject.Inject
@@ -104,3 +105,4 @@ class PostBaseController @Inject()(pcc: PostControllerComponents) extends BaseCo
 
   def postResourceHandler: PostResourceHandler = pcc.postResourceHandler
 }
+*/

@@ -1,3 +1,4 @@
+/*
 import javax.inject._
 
 import com.google.inject.AbstractModule
@@ -18,3 +19,4 @@ class Module(environment: Environment, configuration: Configuration)
     bind[PostRepository].to[PostRepositoryImpl].in[Singleton]
   }
 }
+*/

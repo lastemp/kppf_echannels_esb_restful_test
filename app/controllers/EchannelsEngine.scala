@@ -291,12 +291,18 @@ class EchannelsEngine @Inject()
 
   val httpCallDelay: Int = 15
   val strApplication_path : String = System.getProperty("user.dir")
-  var strFileDate  = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
-  val strpath_file : String = strApplication_path + "\\Logs\\" + strFileDate + "\\Logs.txt"
-  val strpath_file2 : String = strApplication_path + "\\Logs\\" + strFileDate + "\\Errors.txt"
-  var is_Successful : Boolean = create_Folderpaths(strApplication_path)
+  var strFileDate = new SimpleDateFormat("dd-MM-yyyy").format(new java.util.Date)
+  val strpath_file: String = strApplication_path + "\\Logs\\" + strFileDate + "\\Logs.txt"
+  val strpath_file2: String = strApplication_path + "\\Logs\\" + strFileDate + "\\Errors.txt"
+  var is_Successful: Boolean = create_Folderpaths(strApplication_path)
   var writer_data = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file,true)))
   var writer_errors = new PrintWriter(new BufferedWriter(new FileWriter(strpath_file2,true)))
+  val strDeveloperIdCbs: String = getSettings("developerIdCbs")
+  val strOutgoingMemberBalanceDetailsUrlCbs: String = getSettings("outgoingMemberBalanceDetailsUrlCbs")
+  val strOutgoingMemberDetailsGeneralUrlCbs: String = getSettings("outgoingMemberDetailsGeneralUrlCbs")
+  val strOutgoingMemberContributionsDetailsUrlCbs: String = getSettings("outgoingMemberContributionsDetailsUrlCbs")
+  val strOutgoingMemberProjectionBenefitsDetailsUrlCbs: String = getSettings("outgoingMemberProjectionBenefitsDetailsUrlCbs")
+  val strOutgoingValidateMemberDetailsUrlCbs: String = getSettings("outgoingValidateMemberDetailsUrlCbs")
 
   def getMemberDetails = Action.async { request =>
     Future {
@@ -1217,12 +1223,12 @@ class EchannelsEngine @Inject()
         //var strRequest: String = ""
         var strRequestHeader: String = ""
         var strAuthToken: String = ""
-        var isDataFound : Boolean = false
-        var isAuthTokenFound : Boolean = false
-        var isCredentialsFound : Boolean = false
-        var strUserName : String = ""
-        var strPassword : String = ""
-        var strClientIP : String = ""
+        var isDataFound: Boolean = false
+        var isAuthTokenFound: Boolean = false
+        var isCredentialsFound: Boolean = false
+        var strUserName: String = ""
+        var strPassword: String = ""
+        var strClientIP: String = ""
 
         if (!request.body.asJson.isEmpty) {
           isDataFound = true
@@ -1834,7 +1840,7 @@ class EchannelsEngine @Inject()
       */  
       val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
-        val responseFuture = getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest_test)
+        val responseFuture = getMemberBalanceDetailsRequestsCbs(myMemberBalanceDetails_BatchRequest_test, strOutgoingMemberBalanceDetailsUrlCbs)
         /*
         val entityFut: Future[CbsMessage_MemberBalanceDetails_Batch] =
             responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberBalanceDetails_Batch])
@@ -2395,7 +2401,7 @@ class EchannelsEngine @Inject()
 
       val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
-        val responseFuture = getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest_test)
+        val responseFuture = getMemberContributionsDetailsRequestsCbs(myMemberContributionsDetails_BatchRequest_test, strOutgoingMemberContributionsDetailsUrlCbs)
         /*
         val entityFut: Future[CbsMessage_MemberContributionsDetails_Batch] =
           responseFuture.flatMap(resp => Unmarshal(resp.entity).to[CbsMessage_MemberContributionsDetails_Batch])(myExecutionContext)
@@ -3293,7 +3299,7 @@ class EchannelsEngine @Inject()
       }
       val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
-        val responseFuture = getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest_test)
+        val responseFuture = getMemberDetailsGeneralRequestsCbs(myMemberDetailsGeneral_BatchRequest_test, strOutgoingMemberDetailsGeneralUrlCbs)
         
         val entityFut: Future[CbsMessage_MemberDetailsGeneral_BatchData] =
           responseFuture.flatMap(
@@ -3955,7 +3961,7 @@ class EchannelsEngine @Inject()
 
       val strDatetoCbs: String = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date)
       if (successfulEntry){
-        val responseFuture = validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest_test)
+        val responseFuture = validateMemberDetailsRequestsCbs(myMemberDetailsValidate_BatchRequest_test, strOutgoingValidateMemberDetailsUrlCbs)
         
         val entityFut: Future[CbsMessage_MemberDetailsValidate_Batch] =
           responseFuture.flatMap(
@@ -4902,7 +4908,7 @@ class EchannelsEngine @Inject()
                               //val f = Future {sendProjectionBenefitsRequestsCbs(myMemberNo, strMemberType, myProjectionType)}
                               //val strVal : String =  new SimpleDateFormat("ddMMyyyyHHmmssSSS").format(new java.util.Date)
                               //val f = Future {sendProjectionBenefitsRequestsCbs(myMemberNo, myMemberId, myProjectionType)}
-                              val f = Future {sendProjectionBenefitsRequestsCbs(myMemberNo, strMemberType, myProjectionType, myMemberProjectionBenefits_Request)}
+                              val f = Future {sendProjectionBenefitsRequestsCbs(myMemberNo, strMemberType, myProjectionType, myMemberProjectionBenefits_Request, strOutgoingMemberProjectionBenefitsDetailsUrlCbs)}
                             }
                             else{
                               responseCode = 1
@@ -6681,10 +6687,11 @@ class EchannelsEngine @Inject()
   }
   */
   //def sendProjectionBenefitsRequestsCbs(myMemberNo : Int, strMemberType  : String, myProjectionType  : Int): Unit = {
-  def sendProjectionBenefitsRequestsCbs(myMemberNo: Int, strMemberType: String, myProjectionType: Int, myMemberProjectionBenefits_Request: MemberProjectionBenefits_Request): Unit = {
+  def sendProjectionBenefitsRequestsCbs(myMemberNo: Int, strMemberType: String, myProjectionType: Int, myMemberProjectionBenefits_Request: MemberProjectionBenefits_Request, strApiURL: String): Unit = {
     val strApifunction: String = "sendProjectionBenefitsRequestsCbs"
     var strProjectionType  : String = "RetirementsReduced"
-    var strApiURL: String = ""
+    //var strApiURL: String = ""
+    
     var myMemberId: Int = 0
     
     try{
@@ -6703,14 +6710,15 @@ class EchannelsEngine @Inject()
       case ex: Exception =>
         log_errors(strApifunction + " : " + ex.getMessage())
     }
-
+    
     try{
 
-      strApiURL = ""
+      //strApiURL = ""
       //strApiURL = getCBSProjectionBenefitsURL(myMemberId, myProjectionType)
-      strApiURL = "https://e-channels.kppf.co.ke/getmemberprojectionbenefitsdetails"
+      //strApiURL = "https://e-channels.kppf.co.ke/getmemberprojectionbenefitsdetails"
       if (strApiURL == null){
-        strApiURL = ""
+        //strApiURL = ""
+        return
       }
 
       if (strApiURL.trim.length == 0){
@@ -6761,7 +6769,6 @@ class EchannelsEngine @Inject()
       }
       else{
         log_errors(strApifunction + " : Failure in fetching  MemberNo - " + myMemberNo + " , MemberId - " + myMemberId)
-        return
       }
       
     }
@@ -6829,7 +6836,8 @@ class EchannelsEngine @Inject()
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", strUserName),RawHeader("password", strPassWord)))
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(GET, uri = myuri).withHeaders(RawHeader("username", "FundMasterApi"),RawHeader("password", "n6,e$=p8QK\\+c^h~")))
         //val myEntryID: Future[java.math.BigDecimal] = Future(entryID)
-        val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+        //val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+        val accessToken: String = getCbsApiAuthorizationHeader(strDeveloperIdCbs)
         val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
         //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data))
         val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
@@ -10115,13 +10123,13 @@ class EchannelsEngine @Inject()
     myMemberDetailsValidateResponse_BatchData
   }
   */
-  def validateMemberDetailsRequestsCbs_test(myMemberDetailsValidate_BatchRequest: MemberDetailsValidate_BatchRequest): Future[HttpResponse] = {
-    val strApifunction: String = "validateMemberDetailsRequestsCbs_test"
-    var strApiURL: String = ""
+  def validateMemberDetailsRequestsCbs(myMemberDetailsValidate_BatchRequest: MemberDetailsValidate_BatchRequest, strApiURL: String): Future[HttpResponse] = {
+    val strApifunction: String = "validateMemberDetailsRequestsCbs"
+    //var strApiURL: String = ""
     try{
 
-      strApiURL = ""
-      strApiURL = "https://e-channels.kppf.co.ke/validatememberdetails"
+      //strApiURL = ""
+      //strApiURL = "https://e-channels.kppf.co.ke/validatememberdetails"
       /*
       strApiURL = getCBSProvisionalStatementURL(myMemberId)
       if (strApiURL == null){
@@ -10165,7 +10173,7 @@ class EchannelsEngine @Inject()
         log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+    val accessToken: String = getCbsApiAuthorizationHeader(strDeveloperIdCbs)
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
@@ -11180,13 +11188,13 @@ class EchannelsEngine @Inject()
     myMemberDetailsGeneralResponse_BatchData
   }
   */
-  def getMemberDetailsGeneralRequestsCbs_test(myMemberDetailsGeneral_BatchRequest: MemberDetailsGeneral_BatchRequest): Future[HttpResponse] = {
-    val strApifunction: String = "getMemberDetailsGeneralRequestsCbs_test"
-    var strApiURL: String = ""
+  def getMemberDetailsGeneralRequestsCbs(myMemberDetailsGeneral_BatchRequest: MemberDetailsGeneral_BatchRequest, strApiURL: String): Future[HttpResponse] = {
+    val strApifunction: String = "getMemberDetailsGeneralRequestsCbs"
+    //var strApiURL: String = ""
     try{
 
-      strApiURL = ""
-      strApiURL = "https://e-channels.kppf.co.ke/getmemberdetailsgeneral"
+      //strApiURL = ""
+      //strApiURL = "https://e-channels.kppf.co.ke/getmemberdetailsgeneral"
       /*
       strApiURL = getCBSProvisionalStatementURL(myMemberId)
       if (strApiURL == null){
@@ -11230,7 +11238,7 @@ class EchannelsEngine @Inject()
         log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+    val accessToken: String = getCbsApiAuthorizationHeader(strDeveloperIdCbs)
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
@@ -12494,13 +12502,13 @@ class EchannelsEngine @Inject()
     myMemberBalanceDetailsResponse_BatchData
   }
   */
-  def getMemberBalanceDetailsRequestsCbs_test(myMemberBalanceDetails_BatchRequest: MemberBalanceDetails_BatchRequest): Future[HttpResponse] = {
-    val strApifunction: String = "getMemberBalanceDetailsRequestsCbs_test"
-    var strApiURL: String = ""
+  def getMemberBalanceDetailsRequestsCbs(myMemberBalanceDetails_BatchRequest: MemberBalanceDetails_BatchRequest, strApiURL: String): Future[HttpResponse] = {
+    val strApifunction: String = "getMemberBalanceDetailsRequestsCbs"
+    //var strApiURL: String = ""
     try{
 
-      strApiURL = ""
-      strApiURL = "https://e-channels.kppf.co.ke/getmemberbalancedetails"
+      //strApiURL = ""
+      //strApiURL = "https://e-channels.kppf.co.ke/getmemberbalancedetails"
       /*
       strApiURL = getCBSProvisionalStatementURL(myMemberId)
       if (strApiURL == null){
@@ -12544,7 +12552,7 @@ class EchannelsEngine @Inject()
         log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+    val accessToken: String = getCbsApiAuthorizationHeader(strDeveloperIdCbs)
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
     //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken)))
     //val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType","esb")))
@@ -13517,13 +13525,13 @@ class EchannelsEngine @Inject()
     myMemberContributionsDetailsResponse_BatchData
   }
   */
-  def getMemberContributionsDetailsRequestsCbs_test(myMemberContributionsDetails_BatchRequest: MemberContributionsDetails_BatchRequest): Future[HttpResponse] = {
-    val strApifunction: String = "getMemberContributionsDetailsRequestsCbs_test"
-    var strApiURL: String = ""
+  def getMemberContributionsDetailsRequestsCbs(myMemberContributionsDetails_BatchRequest: MemberContributionsDetails_BatchRequest, strApiURL: String): Future[HttpResponse] = {
+    val strApifunction: String = "getMemberContributionsDetailsRequestsCbs"
+    //var strApiURL: String = ""
     try{
 
-      strApiURL = ""
-      strApiURL = "https://e-channels.kppf.co.ke/getmembercontributionsdetails"
+      //strApiURL = ""
+      //strApiURL = "https://e-channels.kppf.co.ke/getmembercontributionsdetails"
       /*
       strApiURL = getCBSProvisionalStatementURL(myMemberId)
       if (strApiURL == null){
@@ -13567,7 +13575,7 @@ class EchannelsEngine @Inject()
         log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
     }
 
-    val accessToken: String = "ZWNoYW5uZWxlc2IwMDE6WiU+OGBRd0g9bkI8OHNgeA=="
+    val accessToken: String = getCbsApiAuthorizationHeader(strDeveloperIdCbs)
     val data = HttpEntity(ContentType(MediaTypes.`application/json`), myjsonData)
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(POST, uri = myuri, entity = data).withHeaders(RawHeader("Authorization","Bearer " + accessToken),RawHeader("ChannelType", "esb")))
     responseFuture
@@ -15103,6 +15111,82 @@ class EchannelsEngine @Inject()
     futureInt.map(i => Ok("Got result: " + i))
   }
   */
+  def getCbsApiAuthorizationHeader(myDeveloperId: String): String = {
+
+    var strApiAuthorizationHeader : String = ""
+    val strSQL: String = "{ call dbo.GetCbsApiAuthorizationHeader(?,?) }"
+    val strApifunction: String = "getCbsApiAuthorizationHeader"
+
+    if (myDeveloperId == null) return strApiAuthorizationHeader
+    if (myDeveloperId.trim.length == 0) return strApiAuthorizationHeader
+
+    try {
+      myDB.withConnection { implicit myconn =>
+        try{
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+          mystmt.registerOutParameter("AuthorizationHeader", java.sql.Types.VARCHAR)
+          mystmt.setString(1,myDeveloperId)
+          mystmt.execute()
+          strApiAuthorizationHeader = mystmt.getString("AuthorizationHeader")
+        }
+        catch{
+          case io: IOException =>
+            log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+          case ex : Exception =>
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+          case t: Throwable =>
+            log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+        }
+      }
+    }catch {
+      case io: IOException =>
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured.")
+      case ex : Exception =>
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured.")
+      case t: Throwable =>
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured.")
+    }
+
+    strApiAuthorizationHeader
+  }
+  def getSettings(strParamKey: String): String = {
+
+    var strParamValue: String = ""
+    val strSQL: String = "{ call dbo.GetSettings(?,?) }"
+    val strApifunction: String = "getSettings"
+
+    if (strParamKey == null) return strParamValue
+    if (strParamKey.trim.length == 0) return strParamValue
+
+    try {
+      myDB.withConnection { implicit myconn =>
+        try{
+          val mystmt: CallableStatement = myconn.prepareCall(strSQL)
+          mystmt.registerOutParameter("ParamValue", java.sql.Types.VARCHAR)
+          mystmt.setString(1,strParamKey)
+          mystmt.execute()
+          strParamValue = mystmt.getString("ParamValue")
+        }
+        catch{
+          case io: IOException =>
+            log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured." + " ParamKey - " + strParamKey)
+          case ex : Exception =>
+            log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " ParamKey - " + strParamKey)
+          case t: Throwable =>
+            log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured." + " ParamKey - " + strParamKey)
+        }
+      }
+    }catch {
+      case io: IOException =>
+        log_errors(strApifunction + " : " + io.getMessage + " - io exception error occured." + " ParamKey - " + strParamKey)
+      case ex : Exception =>
+        log_errors(strApifunction + " : " + ex.getMessage + " - ex exception error occured." + " ParamKey - " + strParamKey)
+      case t: Throwable =>
+        log_errors(strApifunction + " : " + t.getMessage + " - t exception error occured." + " ParamKey - " + strParamKey)
+    }
+
+    strParamValue
+  }
   def log_data(mydetail : String) : Unit = {
     Future {
       try{
@@ -15131,7 +15215,7 @@ class EchannelsEngine @Inject()
         case ex : Exception =>
           ex.printStackTrace()
       }
-    }(myExecutionContextFileWrite)
+    }(myExecutionContextFileWrite)//Lets execute this function in a diff threadpool i.e myExecutionContextFileWrite
   }
   def log_errors(mydetail : String) : Unit = {
     Future {
@@ -15158,7 +15242,7 @@ class EchannelsEngine @Inject()
         case ex : Exception =>
           ex.printStackTrace()
       }
-    }(myExecutionContextFileWrite)
+    }(myExecutionContextFileWrite)//Lets execute this function in a diff threadpool i.e myExecutionContextFileWrite
   }
   def create_Folderpaths(strApplication_path : String): Boolean = {
     var is_Successful : Boolean = false
