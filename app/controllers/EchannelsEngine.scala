@@ -47,53 +47,9 @@ import scala.util.{Failure, Success}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 //
 import play.api.libs.concurrent.Futures._
-//import com.microsoft.sqlserver.jdbc.SQLServerDataTable
-//(cc: ControllerComponents,myDB : Database,myExecutionContext: MyExecutionContext)
-//myExecutionContext
-trait MyExecutionContext extends ExecutionContext
-
-class MyExecutionContextImpl @Inject()(system: ActorSystem)
-  extends CustomExecutionContext(system, "my-dispatcher") with MyExecutionContext
-
-class MyExecutionContextModule extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[MyExecutionContext])
-      .to(classOf[MyExecutionContextImpl])
-
-  }
-}
-//myExecutionContext2
-trait MyExecutionContext2 extends ExecutionContext
-
-class MyExecutionContextImpl2 @Inject()(system: ActorSystem)
-  extends CustomExecutionContext(system, "file-write-io-operations-dispatcher") with MyExecutionContext2
-
-class MyExecutionContextModule2 extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[MyExecutionContext2])
-      .to(classOf[MyExecutionContextImpl2])
-
-  }
-}
-//myExecutionContext3
-trait MyExecutionContext3 extends ExecutionContext
-
-class MyExecutionContextImpl3 @Inject()(system: ActorSystem)
-  extends CustomExecutionContext(system, "database-insertupdate-io-operations-dispatcher") with MyExecutionContext3
-
-class MyExecutionContextModule3 extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[MyExecutionContext3])
-      .to(classOf[MyExecutionContextImpl3])
-
-  }
-}
 
 class EchannelsEngine @Inject()
-  (myExecutionContext: MyExecutionContext, myExecutionContextFileWrite: MyExecutionContext2, myExecutionContextDatabaseInsertupdate: MyExecutionContext3, cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
+  (implicit myDefaultExecutionContext: ExecutionContext, cc: ControllerComponents, @NamedDatabase("ebusiness") myDB: Database)
   extends AbstractController(cc) {
 
   //case class MpesaTransactionStatus_Request(mobileno: String, transactioncode: String, amount: Float)
@@ -286,8 +242,12 @@ class EchannelsEngine @Inject()
   implicit val system = ActorSystem("EchannelsEngine")
   implicit val materializer = ActorMaterializer()
 
-  implicit val blockingDispatcher = system.dispatchers.lookup("my-dispatcher")
   implicit val timeout = Timeout(15 seconds)
+  
+  //we are creating diff threadpools to be used in specific operations
+  val myExecutionContext: ExecutionContext = system.dispatchers.lookup("my-dispatcher")
+  val myExecutionContextFileWrite: ExecutionContext = system.dispatchers.lookup("file-write-io-operations-dispatcher")
+  val myExecutionContextDatabaseInsertupdate: ExecutionContext = system.dispatchers.lookup("database-insertupdate-io-operations-dispatcher")
 
   val httpCallDelay: Int = 15
   val strApplication_path : String = System.getProperty("user.dir")
